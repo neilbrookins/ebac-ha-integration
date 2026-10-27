@@ -72,6 +72,11 @@ class Places:
         self._places[key] = place
         self._store.async_delay_save(lambda: self._places, 5)
 
+    async def async_save(self) -> None:
+        """Write the places now (before EBaC is set up again, as when the
+        translation changes, so that the place just read isn't lost)."""
+        await self._store.async_save(self._places)
+
 
 type EbacConfigEntry = ConfigEntry[EbacData]
 
@@ -110,6 +115,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
 async def async_unload_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool:
     """Unload EBaC: its intents (its sentence file stays, for the restart)."""
     ebac_intents.async_remove(hass)
+    await entry.runtime_data.places.async_save()
     hass.data.pop(DOMAIN, None)
     return True
 

@@ -1,0 +1,46 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "hassio_confirm": {
+        "title": "EBaC (Electronic Bible and Concordance)",
+        "description": "Read Bible verses aloud with Assist, from the {app} app: say \"John 3:16\", then \"next verse\". Set it up?"
+      },
+      "user": {
+        "title": "EBaC (Electronic Bible and Concordance)",
+        "description": "The address of ebac-api. The EBaC app's is filled in; with the app installed, Home Assistant normally finds it by itself.",
+        "data": {
+          "url": "Address"
+        },
+        "data_description": {
+          "url": "Such as http://bda2b308-ebac:8080/cgi-bin/ebac (the EBaC app's)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "EBaC didn't answer at that address. Is the EBaC app started?"
+    },
+    "abort": {
+      "already_configured": "EBaC is already set up.",
+      "single_instance_allowed": "EBaC is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "EBaC options",
+        "data": {
+          "translation": "Translation",
+          "read_on": "Verses to read for \"read on\""
+        },
+        "data_description": {
+          "translation": "The translation verses are read from. Assist's sentences are in English, so the books' names are the translation's English ones.",
+          "read_on": "Also how many verses are read for a chapter alone, such as \"Psalm 23\"."
+        }
+      }
+    },
+    "abort": {
+      "cannot_connect": "EBaC didn't answer. Is the EBaC app started?"
+    }
+  }
+}

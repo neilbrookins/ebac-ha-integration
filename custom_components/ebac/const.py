@@ -31,6 +31,8 @@ INTENT_PREVIOUS = "EbacPrevious"
 INTENT_REPEAT = "EbacRepeat"
 INTENT_READ_ON = "EbacReadOn"
 INTENT_SEARCH = "EbacSearch"
+INTENT_TRANSLATION = "EbacTranslation"
+INTENT_WHICH_TRANSLATION = "EbacWhichTranslation"
 
 # How many verses a search reads aloud, after saying how many it found.
 SEARCH_READ = 1

@@ -29,6 +29,8 @@ from .const import (
     INTENT_READ_ON,
     INTENT_REPEAT,
     INTENT_SEARCH,
+    INTENT_TRANSLATION,
+    INTENT_WHICH_TRANSLATION,
     LANGUAGE,
     SENTENCES_FILE,
 )
@@ -90,6 +92,19 @@ OTHER_SENTENCES = {
         "(keep|continue|go on) reading",
         "read [some] more",
     ],
+    # (after fixed words, the name is a wildcard: the handler matches it,
+    # by short name or title words, against the translations installed)
+    INTENT_TRANSLATION: [
+        "(change|select|set|switch) [the] [bible] translation [to] {ebac_translation:name}",
+        "(change|switch) to [the] {ebac_translation:name} translation",
+        "use [the] {ebac_translation:name} translation",
+        "read from [the] {ebac_translation:name} translation",
+    ],
+    INTENT_WHICH_TRANSLATION: [
+        "(which|what) translation [is (this|that|it)]",
+        "(which|what) translation are you (reading|using)",
+        "(which|what) translation is in use",
+    ],
     INTENT_SEARCH: [
         "search [the] (bible|scripture|scriptures) for {ebac_words:words}",
         "find {ebac_words:words} in the (bible|scripture|scriptures)",
@@ -133,6 +148,7 @@ def build(books: list[dict[str, Any]], numbers: list[dict[str, Any]]) -> dict:
             "ebac_digits": {"range": {"from": 1, "to": most}},
             "ebac_number": {"values": number_values},
             "ebac_words": {"wildcard": True},
+            "ebac_translation": {"wildcard": True},
         },
     }
 

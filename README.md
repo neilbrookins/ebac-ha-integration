@@ -23,8 +23,12 @@ This integration needs the **EBaC app** ([github.com/neilbrookins/ebac-ha-app](h
 | "read that again" | the last verses again |
 | "read on", "keep reading" | the next few verses |
 | "search the Bible for jesus wept" | how many verses have those words, and the first |
+| "change translation to KJVA", "switch to the Lexham translation" | reads from that translation from now on, in the whole house |
+| "which translation is this?" | the translation in use, and the others installed |
 
 Books may be said as "First Samuel", "1st Samuel", "1 Samuel" or "I Samuel"; numbers as digits, words ("one hundred nineteen", "a hundred and nineteen") or Roman numerals (speech to text often writes "Genesis I colon I"). Each voice device (a speaker, a phone) keeps its own place, so "next verse" goes on from what that device last read.
+
+A translation is named by its short name (letter by letter is fine: "K J V A") or words of its title ("King James", "Reina Valera"); if the words fit more than one, it asks which, and changes nothing. Only translations added in the EBaC app can be chosen. After a change, "next verse" goes on from the same verse in the new translation.
 
 A search is in EBaC's own syntax, where words alone are a phrase: "search the Bible for faith hope charity" finds verses with those words together.
 

@@ -8,6 +8,7 @@ verse" on the kitchen speaker goes on from what the kitchen heard.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -25,6 +26,9 @@ from .const import (
     INTENT_READ_ON,
     INTENT_REPEAT,
     INTENT_SEARCH,
+    INTENT_TRANSLATION,
+    INTENT_WHICH_TRANSLATION,
+    CONF_TRANSLATION,
     SEARCH_READ,
 )
 
@@ -98,6 +102,7 @@ class EbacHandler(intent.IntentHandler):
             {
                 "translation": answer.get("translation"),
                 "ref": verses[0]["ref"],
+                "last_ref": verses[-1]["ref"],
                 "first": verses[0]["svn"],
                 "last": verses[-1]["svn"],
                 "count": len(verses),
@@ -106,14 +111,25 @@ class EbacHandler(intent.IntentHandler):
         return " ".join(verse["spoken"] for verse in verses)
 
     @staticmethod
-    def place(data: EbacData, key: str) -> dict | None:
-        """The place, if it is in the translation in use."""
+    async def place(data: EbacData, key: str) -> dict | None:
+        """The place, in the translation in use. After the translation is
+        changed, the same references, looked up in the new one: verses are
+        numbered differently (KJVA has the Apocrypha), so not by SVN."""
         place = data.places.get(key)
-        if place is None or (
-            data.translation and place.get("translation") != data.translation
-        ):
+        if place is None:
             return None
-        return place
+        if not data.translation or place.get("translation") == data.translation:
+            return place
+        if "last_ref" not in place:
+            return None  # (kept before references were)
+        first = await data.api.verse(data.translation, place["ref"], 1)
+        last = await data.api.verse(data.translation, place["last_ref"], 1)
+        return {
+            **place,
+            "translation": data.translation,
+            "first": first["verses"][0]["svn"],
+            "last": last["verses"][0]["svn"],
+        }
 
 
 class ReadHandler(EbacHandler):
@@ -148,7 +164,7 @@ class NextHandler(EbacHandler):
     """ "Next verse"."""
 
     async def answer(self, intent_obj, data, key):
-        if (place := self.place(data, key)) is None:
+        if (place := await self.place(data, key)) is None:
             return NO_PLACE
         return self.speak(
             data, key, await data.api.next(data.translation, place["last"])
@@ -159,7 +175,7 @@ class PreviousHandler(EbacHandler):
     """ "Previous verse"."""
 
     async def answer(self, intent_obj, data, key):
-        if (place := self.place(data, key)) is None:
+        if (place := await self.place(data, key)) is None:
             return NO_PLACE
         return self.speak(
             data, key, await data.api.previous(data.translation, place["first"])
@@ -170,7 +186,7 @@ class RepeatHandler(EbacHandler):
     """ "Read that again"."""
 
     async def answer(self, intent_obj, data, key):
-        if (place := self.place(data, key)) is None:
+        if (place := await self.place(data, key)) is None:
             return NO_PLACE
         return self.speak(
             data,
@@ -183,7 +199,7 @@ class ReadOnHandler(EbacHandler):
     """ "Read on": the next few verses (as many as the options say)."""
 
     async def answer(self, intent_obj, data, key):
-        if (place := self.place(data, key)) is None:
+        if (place := await self.place(data, key)) is None:
             return NO_PLACE
         return self.speak(
             data,
@@ -211,6 +227,87 @@ class SearchHandler(EbacHandler):
         return f'{count} verses have "{words}". The first: {verses}'
 
 
+def words_of(text: str) -> list[str]:
+    """The words of text, in small letters, without punctuation."""
+    return re.findall(r"\w+", text.lower())
+
+
+def spoken_title(translation: dict[str, str]) -> str:
+    """A translation, as said: its title and short name."""
+    return f"{translation['title']} ({translation['name']})"
+
+
+def match_translations(said: str, translations: list[dict]) -> list[dict]:
+    """The translations installed that the words said name (see "Changing
+    the translation by voice" in EBaC's readme.architecture): the short
+    name, ignoring case, spaces and dots ("K J V A"); else those whose
+    title has every word said ("King James"), the one whose title is just
+    those words, if there is one."""
+    letters = "".join(words_of(said))
+    by_name = [t for t in translations if t["name"].lower() == letters]
+    if by_name:
+        return by_name
+    said_words = [w for w in words_of(said) if w not in ("the", "translation")]
+    if not said_words:
+        return []
+    found = [
+        t
+        for t in translations
+        if all(w in words_of(t["title"]) for w in said_words)
+    ]
+    exact = [t for t in found if words_of(t["title"]) == said_words]
+    return exact or found
+
+
+class TranslationHandler(EbacHandler):
+    """ "Change translation to KJVA", "switch to the Lexham translation":
+    for the whole house (the integration's option)."""
+
+    slot_schema = {vol.Required("name"): cv.string}
+
+    async def answer(self, intent_obj, data, key):
+        slots = self.async_validate_slots(intent_obj.slots)
+        said = slots["name"]["value"].strip(" .?!")
+        translations = await data.api.translations()
+        found = match_translations(said, translations)
+        if not found:
+            names = "; ".join(spoken_title(t) for t in translations)
+            return f'No translation installed is called "{said}". Installed: {names}.'
+        if len(found) > 1:
+            names = "; or ".join(spoken_title(t) for t in found)
+            return f"Which one: {names}?"
+        chosen = found[0]
+        if chosen["name"] == data.translation:
+            return f"Already reading from {spoken_title(chosen)}."
+        entries = intent_obj.hass.config_entries.async_entries(DOMAIN)
+        if not entries:
+            return NOT_SET_UP
+        entry = entries[0]
+        # (EBaC is then set up again, with the new translation's books)
+        intent_obj.hass.config_entries.async_update_entry(
+            entry, options={**entry.options, CONF_TRANSLATION: chosen["name"]}
+        )
+        return f"Now reading from {spoken_title(chosen)}."
+
+
+class WhichTranslationHandler(EbacHandler):
+    """ "Which translation is this?": the one in use, and the others."""
+
+    async def answer(self, intent_obj, data, key):
+        translations = await data.api.translations()
+        current = data.translation or (translations[0]["name"] if translations else "")
+        this = [t for t in translations if t["name"] == current]
+        others = [t for t in translations if t["name"] != current]
+        speech = (
+            f"Reading from {spoken_title(this[0])}."
+            if this
+            else f"Reading from {current}."
+        )
+        if others:
+            speech += " Also installed: " + "; ".join(spoken_title(t) for t in others) + "."
+        return speech
+
+
 HANDLERS = {
     INTENT_READ: ReadHandler,
     INTENT_NEXT: NextHandler,
@@ -218,6 +315,8 @@ HANDLERS = {
     INTENT_REPEAT: RepeatHandler,
     INTENT_READ_ON: ReadOnHandler,
     INTENT_SEARCH: SearchHandler,
+    INTENT_TRANSLATION: TranslationHandler,
+    INTENT_WHICH_TRANSLATION: WhichTranslationHandler,
 }
 
 

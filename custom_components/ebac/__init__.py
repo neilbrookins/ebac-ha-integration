@@ -16,7 +16,7 @@ At setup the integration
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -48,6 +48,11 @@ class EbacData:
     translation: str | None
     read_on: int
     places: Places
+    # the full names of the books of the translation in use ("1 Samuel"),
+    # and its title: to say which book it lacks ("The Westminster
+    # Leningrad Codex has no John")
+    books: set[str] = field(default_factory=set)
+    title: str = ""
 
 
 class Places:
@@ -88,8 +93,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
     try:
         books = await api.books(translation)
         numbers = await api.numbers(translation)
+        translations = await api.translations()
+        # The sentences know the books of every translation installed, not
+        # only of the one in use: so "John 3:16" said while reading the
+        # Hebrew Bible (no New Testament) is understood, and answered that
+        # it has no John, rather than not understood at all.
+        all_books = list(books)
+        known = {book["full_name"] for book in books}
+        for other in translations:
+            if other["name"] == (translation or translations[0]["name"]):
+                continue
+            for book in await api.books(other["name"]):
+                if book["full_name"] not in known:
+                    known.add(book["full_name"])
+                    all_books.append(book)
     except EbacError as err:
         raise ConfigEntryNotReady(str(err)) from err
+    in_use = translation or (translations[0]["name"] if translations else "")
+    title = next((t["title"] for t in translations if t["name"] == in_use), in_use)
 
     places = Places(hass)
     await places.async_load()
@@ -98,11 +119,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         translation=translation,
         read_on=int(entry.options.get(CONF_READ_ON, DEFAULT_READ_ON)),
         places=places,
+        books={book["full_name"] for book in books},
+        title=title,
     )
     hass.data[DOMAIN] = entry.runtime_data
 
     changed = await hass.async_add_executor_job(
-        sentences.write, hass.config.config_dir, sentences.build(books, numbers)
+        sentences.write, hass.config.config_dir, sentences.build(all_books, numbers)
     )
     ebac_intents.async_register(hass)
     if changed:

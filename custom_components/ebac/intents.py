@@ -145,6 +145,11 @@ class ReadHandler(EbacHandler):
     async def answer(self, intent_obj, data, key):
         slots = self.async_validate_slots(intent_obj.slots)
         book = slots["book"]["value"]
+        if data.books and book not in data.books:
+            # (a book of another translation installed, as John is to the
+            # Hebrew Bible)
+            the = "" if data.title.lower().startswith("the ") else "The "
+            return f"{the}{data.title} has no {book}."
         chapter, verse, to = (number(slots, n) for n in ("chapter", "verse", "to"))
         # The reference as text, for ebac-api to read ("Jude 3 to 5" is
         # Jude 1:3-5: its rules are in one place, EBaC's parser).

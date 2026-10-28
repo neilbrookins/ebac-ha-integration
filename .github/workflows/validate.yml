@@ -1,0 +1,29 @@
+# Checks HACS and Home Assistant require before the integration can be in
+# HACS's default list: HACS's own validation, and hassfest, Home
+# Assistant's check of an integration's manifest, strings and setup.
+name: Validate
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"   # weekly, as either can change its rules
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  hassfest:
+    name: hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master

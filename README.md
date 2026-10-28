@@ -21,7 +21,7 @@ This integration needs the **EBaC app** ([github.com/neilbrookins/ebac-ha-app](h
 | "Psalm 23", "read Genesis" | the first verses of the chapter or book |
 | "Jude 3" | Jude 1:3 (a book of one chapter) |
 | "next verse", "previous verse" | the verse after or before the last one heard |
-| "read that again" | the last verses again |
+| "repeat verse", "read that again", "one more time" | the last verses again |
 | "read on", "keep reading" | the next few verses |
 | "search the Bible for jesus wept 0" | how many verses have those words; one is read, several are listed, five at a time: "1, Matthew 26:75; 2, Mark 14:72; 3, John 11:35" |
 | "result two", "the second result" | that result, which "next verse" and "previous verse" then go on from |

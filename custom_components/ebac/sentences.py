@@ -88,10 +88,15 @@ OTHER_SENTENCES = {
         "[go] back [a|one] verse",
         "verse before",
     ],
+    # "Repeat verse", to go with "next verse" and "previous verse"
     INTENT_REPEAT: [
-        "read (that|it|the verse|that verse) again",
-        "repeat (that|the|this) verse",
-        "say (that|the|this) verse again",
+        "(read|say) (that|it|the verse|that verse|this verse|the verses|those verses) (again|one more time)",
+        "repeat [the|that|this] (verse|verses)",
+        "repeat (that|it)",
+        "[read|say] [the|that] (verse|verses) again",
+        "(same|this) verse again",
+        "again",
+        "one more time",
     ],
     INTENT_READ_ON: [
         "(read|continue) on",

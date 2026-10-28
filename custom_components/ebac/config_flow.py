@@ -46,6 +46,22 @@ from .const import (
 )
 
 TITLE = "EBaC"
+# The translation offered first at setup: the King James Version, which
+# comes with every EBaC (else the first installed).
+DEFAULT_TRANSLATION = "AV"
+
+
+def translation_selector(translations: list[dict[str, str]]) -> SelectSelector:
+    """A list of the translations installed, to choose one."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(value=t["name"], label=f"{t['name']}: {t['title']}")
+                for t in translations
+            ],
+            mode=SelectSelectorMode.DROPDOWN,
+        )
+    )
 
 
 class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -56,14 +72,47 @@ class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._url: str | None = None
         self._app: str = "EBaC"
+        self._translations: list[dict[str, str]] = []
 
     async def _check(self, url: str) -> str | None:
-        """None if ebac-api answers at url; else the error's key."""
+        """None if ebac-api answers at url (and its translations are kept,
+        to choose from); else the error's key."""
         try:
-            await EbacApi(async_get_clientsession(self.hass), url).translations()
+            self._translations = await EbacApi(
+                async_get_clientsession(self.hass), url
+            ).translations()
         except EbacError:
             return "cannot_connect"
+        if not self._translations:
+            return "no_translations"
         return None
+
+    async def async_step_translation(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Which translation to read from, to start with (the options can
+        change it later, as can "change translation" said to Assist)."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=TITLE,
+                data={CONF_URL: self._url},
+                options={
+                    CONF_TRANSLATION: user_input[CONF_TRANSLATION],
+                    CONF_READ_ON: DEFAULT_READ_ON,
+                },
+            )
+        names = [t["name"] for t in self._translations]
+        default = DEFAULT_TRANSLATION if DEFAULT_TRANSLATION in names else names[0]
+        return self.async_show_form(
+            step_id="translation",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_TRANSLATION, default=default): translation_selector(
+                        self._translations
+                    )
+                }
+            ),
+        )
 
     async def async_step_hassio(
         self, discovery_info: HassioServiceInfo
@@ -87,7 +136,7 @@ class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             assert self._url is not None
             if (error := await self._check(self._url)) is None:
-                return self.async_create_entry(title=TITLE, data={CONF_URL: self._url})
+                return await self.async_step_translation()
             errors["base"] = error
         return self.async_show_form(
             step_id="hassio_confirm",
@@ -106,7 +155,8 @@ class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             url = user_input[CONF_URL].strip().rstrip("/")
             if (error := await self._check(url)) is None:
-                return self.async_create_entry(title=TITLE, data={CONF_URL: url})
+                self._url = url
+                return await self.async_step_translation()
             errors["base"] = error
         return self.async_show_form(
             step_id="user",
@@ -151,16 +201,8 @@ class EbacOptionsFlow(OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_TRANSLATION, default=current): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(
-                                    value=t["name"], label=f"{t['name']}: {t['title']}"
-                                )
-                                for t in translations
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )
+                    vol.Required(CONF_TRANSLATION, default=current): translation_selector(
+                        translations
                     ),
                     vol.Required(
                         CONF_READ_ON,

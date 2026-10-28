@@ -10,6 +10,7 @@ This integration needs the **EBaC app** ([github.com/neilbrookins/ebac-ha-app](h
 2. In HACS, open the menu (⋮) → **Custom repositories**, add `https://github.com/neilbrookins/ebac-ha-integration` as an **Integration**, then download **EBaC (Electronic Bible and Concordance)**.
 3. Restart Home Assistant.
 4. Under **Settings → Devices & services**, EBaC is shown as discovered: press **Add** and **Submit**. (If it isn't, press **Add integration**, choose EBaC, and keep the address filled in.)
+5. Choose the translation to read from (the King James Version is offered first), and press **Submit**. You can change it later.
 
 ## What to say
 

@@ -15,10 +15,21 @@
         "data_description": {
           "url": "Such as http://bda2b308-ebac:8080/cgi-bin/ebac (the EBaC app's)"
         }
+      },
+      "translation": {
+        "title": "Which translation?",
+        "description": "The translation EBaC reads from, to start with. You can change it later under Configure, or by saying \"change translation to\" and its name.",
+        "data": {
+          "translation": "Translation"
+        },
+        "data_description": {
+          "translation": "Only translations added in the EBaC app are listed: add others there, with A at its main menu."
+        }
       }
     },
     "error": {
-      "cannot_connect": "EBaC didn't answer at that address. Is the EBaC app started?"
+      "cannot_connect": "EBaC didn't answer at that address. Is the EBaC app started?",
+      "no_translations": "EBaC answered, but has no translations."
     },
     "abort": {
       "already_configured": "EBaC is already set up.",

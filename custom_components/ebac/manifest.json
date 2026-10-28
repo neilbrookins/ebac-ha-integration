@@ -1,9 +1,6 @@
 {
   "domain": "ebac",
   "name": "EBaC (Electronic Bible and Concordance)",
-  "categories": [
-    "ai_voice.voice_assistants"
-  ],
   "codeowners": [
     "@neilbrookins"
   ],

@@ -29,6 +29,12 @@ from .const import (
     INTENT_READ_ON,
     INTENT_REPEAT,
     INTENT_SEARCH,
+    INTENT_RESULT,
+    INTENT_NEXT_RESULT,
+    INTENT_PREVIOUS_RESULT,
+    INTENT_MORE_RESULTS,
+    INTENT_EARLIER_RESULTS,
+    INTENT_BACK_TO_RESULTS,
     INTENT_TRANSLATION,
     INTENT_WHICH_TRANSLATION,
     LANGUAGE,
@@ -105,11 +111,53 @@ OTHER_SENTENCES = {
         "(which|what) translation are you (reading|using)",
         "(which|what) translation is in use",
     ],
+    # A search's results (see "A search's results" in readme.architecture).
+    # "Result two", "number two", "the second result".
+    INTENT_RESULT: [
+        "[read|open|go to|show] [the] (result|number) "
+        "({ebac_digits:number}|{ebac_number:number})",
+        "[read|open|go to|show] the {ebac_ordinal:number} [result|one]",
+    ],
+    INTENT_NEXT_RESULT: [
+        "[read] [the] next (result|one|match)",
+        "[go to] [the] following result",
+    ],
+    INTENT_PREVIOUS_RESULT: [
+        "[read] [the] (previous|last) (result|match)",
+        "[go] back [a|one] result",
+    ],
+    INTENT_MORE_RESULTS: [
+        "more results",
+        "[list|read] [the] next (results|five)",
+        "(list|read) more [results]",
+    ],
+    INTENT_EARLIER_RESULTS: [
+        "(earlier|previous) results",
+        "[list|read] [the] previous five",
+    ],
+    INTENT_BACK_TO_RESULTS: [
+        "[go] back to the (results|list|search)",
+        "(list|read) the results [again]",
+        "(show|list) the search [results]",
+    ],
     INTENT_SEARCH: [
         "search [the] (bible|scripture|scriptures) for {ebac_words:words}",
         "find {ebac_words:words} in the (bible|scripture|scriptures)",
     ],
 }
+
+
+# "The second result": English ordinals, to the twentieth (results are
+# listed five at a time; beyond that, "result twenty one").
+ORDINALS = [
+    {"in": word, "out": n}
+    for n, word in enumerate(
+        "first second third fourth fifth sixth seventh eighth ninth tenth "
+        "eleventh twelfth thirteenth fourteenth fifteenth sixteenth "
+        "seventeenth eighteenth nineteenth twentieth".split(),
+        start=1,
+    )
+] + [{"in": f"{n}{'st' if n % 10 == 1 and n != 11 else 'nd' if n % 10 == 2 and n != 12 else 'rd' if n % 10 == 3 and n != 13 else 'th'}", "out": n} for n in range(1, 21)]
 
 
 def book_forms(book: dict[str, Any]) -> list[str]:
@@ -148,6 +196,7 @@ def build(books: list[dict[str, Any]], numbers: list[dict[str, Any]]) -> dict:
             "ebac_digits": {"range": {"from": 1, "to": most}},
             "ebac_number": {"values": number_values},
             "ebac_words": {"wildcard": True},
+            "ebac_ordinal": {"values": ORDINALS},
             "ebac_translation": {"wildcard": True},
         },
     }

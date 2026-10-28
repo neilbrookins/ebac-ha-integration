@@ -82,7 +82,10 @@ class EbacApi:
         return await self.request("previous", t=translation, svn=svn, n=count)
 
     async def search(
-        self, translation: str | None, words: str, most: int
+        self, translation: str | None, words: str, most: int, start: int = 1
     ) -> dict[str, Any]:
-        """A search, in EBaC's own syntax (words alone are a phrase)."""
-        return await self.request("search", t=translation, q=words, max=most)
+        """A search, in EBaC's own syntax (words alone are a phrase): how
+        many verses, and those from result start (1 for the first)."""
+        return await self.request(
+            "search", t=translation, q=words, max=most, start=start
+        )

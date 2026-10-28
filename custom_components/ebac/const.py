@@ -33,6 +33,12 @@ INTENT_READ_ON = "EbacReadOn"
 INTENT_SEARCH = "EbacSearch"
 INTENT_TRANSLATION = "EbacTranslation"
 INTENT_WHICH_TRANSLATION = "EbacWhichTranslation"
+INTENT_RESULT = "EbacResult"
+INTENT_NEXT_RESULT = "EbacNextResult"
+INTENT_PREVIOUS_RESULT = "EbacPreviousResult"
+INTENT_MORE_RESULTS = "EbacMoreResults"
+INTENT_EARLIER_RESULTS = "EbacEarlierResults"
+INTENT_BACK_TO_RESULTS = "EbacBackToResults"
 
-# How many verses a search reads aloud, after saying how many it found.
-SEARCH_READ = 1
+# How many of a search's results are listed at a time (their references).
+RESULTS_PER_LIST = 5

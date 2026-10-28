@@ -26,10 +26,16 @@ from .const import (
     INTENT_READ_ON,
     INTENT_REPEAT,
     INTENT_SEARCH,
+    INTENT_RESULT,
+    INTENT_NEXT_RESULT,
+    INTENT_PREVIOUS_RESULT,
+    INTENT_MORE_RESULTS,
+    INTENT_EARLIER_RESULTS,
+    INTENT_BACK_TO_RESULTS,
+    RESULTS_PER_LIST,
     INTENT_TRANSLATION,
     INTENT_WHICH_TRANSLATION,
     CONF_TRANSLATION,
-    SEARCH_READ,
 )
 
 if TYPE_CHECKING:
@@ -214,22 +220,166 @@ class ReadOnHandler(EbacHandler):
 
 
 class SearchHandler(EbacHandler):
-    """ "Search the Bible for faith hope charity": how many verses, and the
-    first (which becomes the place, so "next verse" goes on from it)."""
+    """ "Search the Bible for jesus wept": one verse is read; several are
+    listed, five at a time (their references), as on EBaC's list screen,
+    to choose from ("result two"). See "A search's results" in EBaC's
+    readme.architecture."""
 
     slot_schema = {vol.Required("words"): cv.string}
 
     async def answer(self, intent_obj, data, key):
         slots = self.async_validate_slots(intent_obj.slots)
         words = " ".join(slots["words"]["value"].split()).strip(" .?!")
-        answer = await data.api.search(data.translation, words.lower(), SEARCH_READ)
+        answer = await data.api.search(
+            data.translation, words.lower(), RESULTS_PER_LIST
+        )
         count = answer.get("count", 0)
+        search = {
+            "words": words,
+            "translation": answer.get("translation"),
+            "count": count,
+            "at": 0,  # (the result at: none yet)
+            "listed": 1,  # (the first of the five last listed)
+        }
+        data.places.set(search_key(key), search)
         if count == 0:
             return f'No verse has "{words}".'
-        verses = self.speak(data, key, answer)
         if count == 1:
-            return f'One verse has "{words}": {verses}'
-        return f'{count} verses have "{words}". The first: {verses}'
+            search["at"] = 1
+            data.places.set(search_key(key), search)
+            return f'One verse has "{words}": {self.speak(data, key, answer)}'
+        return f'{count} verses have "{words}": ' + listing(answer, search)
+
+
+def search_key(key: str) -> str:
+    """Where a device's last search is kept, beside its place."""
+    return f"{key}|search"
+
+
+def listing(answer: dict[str, Any], search: dict) -> str:
+    """Results, as their numbers and references: "1, Matthew 26:75; 2,
+    Mark 14:72"; and what can be said next."""
+    start = answer.get("start", 1)
+    refs = [f"{start + i}, {v['ref']}" for i, v in enumerate(answer.get("verses", []))]
+    last = start + len(refs) - 1
+    text = "; ".join(refs) + "."
+    if last < search["count"]:
+        text += f" Say a result's number, or more results ({last} of {search['count']})."
+    else:
+        text += " Say a result's number."
+    return text
+
+
+class ResultsHandler(EbacHandler):
+    """What the handlers of a search's results share: the last search, in
+    the translation in use (searched again in it, from its first result,
+    if the translation was changed since)."""
+
+    async def results(self, data: EbacData, key: str) -> dict | None:
+        search = data.places.get(search_key(key))
+        if search is None or not search.get("count"):
+            return None
+        if data.translation and search.get("translation") != data.translation:
+            answer = await data.api.search(data.translation, search["words"].lower(), 0)
+            search = {
+                **search,
+                "translation": data.translation,
+                "count": answer.get("count", 0),
+                "at": 0,
+                "listed": 1,
+            }
+            data.places.set(search_key(key), search)
+            if not search["count"]:
+                return None
+        return search
+
+    async def read_result(self, data: EbacData, key: str, search: dict, n: int) -> str:
+        """Result n: read, and it becomes the place (for "next verse")."""
+        if n < 1:
+            return "That was the first result."
+        if n > search["count"]:
+            return f"That was the last result: there are {search['count']}."
+        answer = await data.api.search(data.translation, search["words"].lower(), 1, n)
+        search = {**search, "at": n}
+        data.places.set(search_key(key), search)
+        return f"Result {n} of {search['count']}. {self.speak(data, key, answer)}"
+
+    async def list_from(self, data: EbacData, key: str, search: dict, start: int) -> str:
+        """Five results' references, from result start."""
+        answer = await data.api.search(
+            data.translation, search["words"].lower(), RESULTS_PER_LIST, start
+        )
+        data.places.set(search_key(key), {**search, "listed": start})
+        return listing(answer, search)
+
+
+NO_RESULTS = 'Search first, such as "search the Bible for jesus wept".'
+
+
+class ResultHandler(ResultsHandler):
+    """ "Result two", "the second result": that result."""
+
+    slot_schema = {vol.Required("number"): vol.Any(int, float, cv.string)}
+
+    async def answer(self, intent_obj, data, key):
+        if (search := await self.results(data, key)) is None:
+            return NO_RESULTS
+        n = number(self.async_validate_slots(intent_obj.slots), "number") or 0
+        return await self.read_result(data, key, search, n)
+
+
+class NextResultHandler(ResultsHandler):
+    """ "Next result": the result after the one at (the first, if none)."""
+
+    async def answer(self, intent_obj, data, key):
+        if (search := await self.results(data, key)) is None:
+            return NO_RESULTS
+        return await self.read_result(data, key, search, search["at"] + 1)
+
+
+class PreviousResultHandler(ResultsHandler):
+    """ "Previous result"."""
+
+    async def answer(self, intent_obj, data, key):
+        if (search := await self.results(data, key)) is None:
+            return NO_RESULTS
+        return await self.read_result(data, key, search, search["at"] - 1)
+
+
+class MoreResultsHandler(ResultsHandler):
+    """ "More results": the next five references."""
+
+    async def answer(self, intent_obj, data, key):
+        if (search := await self.results(data, key)) is None:
+            return NO_RESULTS
+        start = search["listed"] + RESULTS_PER_LIST
+        if start > search["count"]:
+            return f"That's all {search['count']} results. Say a result's number."
+        return await self.list_from(data, key, search, start)
+
+
+class EarlierResultsHandler(ResultsHandler):
+    """ "Earlier results": the five before."""
+
+    async def answer(self, intent_obj, data, key):
+        if (search := await self.results(data, key)) is None:
+            return NO_RESULTS
+        start = max(1, search["listed"] - RESULTS_PER_LIST)
+        return await self.list_from(data, key, search, start)
+
+
+class BackToResultsHandler(ResultsHandler):
+    """ "Back to the results": as x on EBaC's screen, the list where it was
+    left (the five around the result at), and which result that was."""
+
+    async def answer(self, intent_obj, data, key):
+        if (search := await self.results(data, key)) is None:
+            return NO_RESULTS
+        at = search["at"]
+        start = ((at - 1) // RESULTS_PER_LIST) * RESULTS_PER_LIST + 1 if at else 1
+        intro = f'{search["count"]} verses have "{search["words"]}"'
+        intro += f", and you were at result {at}: " if at else ": "
+        return intro + await self.list_from(data, key, search, start)
 
 
 def words_of(text: str) -> list[str]:
@@ -320,6 +470,12 @@ HANDLERS = {
     INTENT_REPEAT: RepeatHandler,
     INTENT_READ_ON: ReadOnHandler,
     INTENT_SEARCH: SearchHandler,
+    INTENT_RESULT: ResultHandler,
+    INTENT_NEXT_RESULT: NextResultHandler,
+    INTENT_PREVIOUS_RESULT: PreviousResultHandler,
+    INTENT_MORE_RESULTS: MoreResultsHandler,
+    INTENT_EARLIER_RESULTS: EarlierResultsHandler,
+    INTENT_BACK_TO_RESULTS: BackToResultsHandler,
     INTENT_TRANSLATION: TranslationHandler,
     INTENT_WHICH_TRANSLATION: WhichTranslationHandler,
 }

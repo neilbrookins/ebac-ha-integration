@@ -69,7 +69,7 @@ Adding is one step when the language is already the one you want: "add translati
 
 1. Assist reads the translation's license and asks whether you agree.
 2. Answer "yes" or "no". On a voice speaker, say the wake word first, as for any command: Assist doesn't keep listening after a question when it answers with its own sentences (Home Assistant, as of October 2026). The question waits five minutes, for the same speaker or phone.
-3. Adding takes a minute or two (the download, then the index). Assist says it has started; when it is done, a voice speaker announces it, and the Home Assistant app gets a notification. The new translation is then the one read from, here only: the EBaC app still starts with its own. If adding fails, it shows under **Settings → Repairs**, saying why.
+3. Adding takes a minute or two (the download, then the index). Assist says it has started; when it is done, a voice speaker announces it, and the Home Assistant app gets a notification. The new translation is then the one read from, here only: the EBaC app still starts with its own. If adding fails, it shows under **Settings → Repairs**, saying why. A failed add leaves nothing behind, so the repair is a notice: open it and press **Submit** to clear it. Adding that translation, or removing it, clears it too.
 
 The same version of a translation already added isn't downloaded again: remove it first. Removing asks "Are you sure?" first. EBaC's own translations, such as the King James Version, can't be removed. If you remove the translation in use, Assist reads from the EBaC app's first translation instead, and says so.
 

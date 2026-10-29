@@ -80,7 +80,14 @@
   "issues": {
     "add_failed": {
       "title": "Adding {translation} by voice failed",
-      "description": "Adding {translation}, asked for by voice from {who}, failed: {why}\n\nYou can try again by voice (\"add translation\" and its name), or in the EBaC app: A at its main menu. This goes away when it is added."
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Adding {translation} by voice failed",
+            "description": "Adding {translation}, asked for by voice from {who}, failed: {why}\n\nNothing was left behind: EBaC's list of translations is as it was. You can try again by voice (\"add translation\" and its name), or in the EBaC app (A at its main menu).\n\nPress **Submit** to clear this."
+          }
+        }
+      }
     }
   }
 }

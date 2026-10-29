@@ -18,6 +18,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import intent
+from homeassistant.helpers import issue_registry as ir
 
 from . import adding
 from .api import EbacError
@@ -956,6 +957,8 @@ class YesHandler(EbacHandler):
         translations = await data.api.translations()
         current = data.translation or (translations[0]["name"] if translations else "")
         await data.api.remove(name)
+        # (a repair of a failed add of it: done with, as it's gone)
+        ir.async_delete_issue(intent_obj.hass, DOMAIN, adding.issue_id(name))
         if name != current:
             # (set up again: the books of the translations left)
             entries = intent_obj.hass.config_entries.async_entries(DOMAIN)

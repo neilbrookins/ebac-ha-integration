@@ -163,7 +163,10 @@ async def watch_add(hass: HomeAssistant, name: str, title: str, who: Asker) -> N
         hass,
         DOMAIN,
         issue_id(name),
-        is_fixable=False,
+        # (fixable, with nothing to fix but to acknowledge it: a failed add
+        # leaves nothing behind, so Submit clears it, rather than Ignore
+        # keeping it as a problem still there)
+        is_fixable=True,
         severity=ir.IssueSeverity.ERROR,
         translation_key="add_failed",
         translation_placeholders={"translation": spoken, "why": message, "who": who.name},

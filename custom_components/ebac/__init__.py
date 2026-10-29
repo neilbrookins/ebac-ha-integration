@@ -22,6 +22,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
@@ -150,6 +151,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         language=options.get(CONF_LANGUAGE) or DEFAULT_LANGUAGE,
     )
     hass.data[DOMAIN] = entry.runtime_data
+
+    # Repairs from 0.5.0's first builds, which could only be ignored, not
+    # cleared: a failed add leaves nothing behind (see adding.py)
+    issues = ir.async_get(hass)
+    for (domain, issue_id), issue in list(issues.issues.items()):
+        if domain == DOMAIN and issue_id.startswith("add_failed_") and not issue.is_fixable:
+            ir.async_delete_issue(hass, DOMAIN, issue_id)
 
     changed = await hass.async_add_executor_job(
         sentences.write, hass.config.config_dir, sentences.build(all_books, numbers)

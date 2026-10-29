@@ -37,6 +37,25 @@ from .const import (
     INTENT_BACK_TO_RESULTS,
     INTENT_TRANSLATION,
     INTENT_WHICH_TRANSLATION,
+    INTENT_USE_LANGUAGE,
+    INTENT_LIST_LANGUAGES,
+    INTENT_LIST_AVAILABLE,
+    INTENT_LIST_ADDED,
+    INTENT_MORE_LIST,
+    INTENT_EARLIER_LIST,
+    INTENT_ADD,
+    INTENT_REMOVE,
+    INTENT_YES,
+    INTENT_NO,
+    INTENT_NEXT_CHAPTER,
+    INTENT_PREVIOUS_CHAPTER,
+    INTENT_START_CHAPTER,
+    INTENT_READ_BACK,
+    INTENT_NEXT_BOOK,
+    INTENT_PREVIOUS_BOOK,
+    INTENT_START_BOOK,
+    INTENT_VERSION,
+    INTENT_LICENSE,
     LANGUAGE,
     SENTENCES_FILE,
 )
@@ -149,6 +168,96 @@ OTHER_SENTENCES = {
         "search [the] (bible|scripture|scriptures) for {ebac_words:words}",
         "find {ebac_words:words} in the (bible|scripture|scriptures)",
     ],
+    # Moving through the text (see "Moving through the text" in
+    # readme.architecture): a few verses at a time, on across books
+    INTENT_NEXT_CHAPTER: [
+        "[read] [the] next chapter",
+        "[go] (on|forward) [a|one] chapter",
+    ],
+    INTENT_PREVIOUS_CHAPTER: [
+        "[read] [the] (previous|last|preceding) chapter",
+        "[go] back [a|one] chapter",
+    ],
+    INTENT_START_CHAPTER: [
+        "[go to|read] [the] (start|beginning) of [the|this] chapter",
+        "[read] this chapter from the (start|beginning)",
+    ],
+    INTENT_READ_BACK: [
+        "read back",
+        "[read] [the] verses before",
+        "(go|page) back [some] [more]",
+    ],
+    INTENT_NEXT_BOOK: [
+        "[read] [the] next book",
+        "[go] (on|forward) [a|one] book",
+    ],
+    INTENT_PREVIOUS_BOOK: [
+        "[read] [the] (previous|last|preceding) book",
+        "[go] back [a|one] book",
+    ],
+    INTENT_START_BOOK: [
+        "[go to|read] [the] (start|beginning) of [the|this] book",
+        "[read] this book from the (start|beginning)",
+    ],
+    # Information (I in the app)
+    INTENT_VERSION: [
+        "(what|which) version of (ebac|e bac|e back|eback|ebak|the bible app) is (this|it|installed|running)",
+        "(what|which) (ebac|e bac|e back|eback|ebak) version [is (this|it)]",
+        "(ebac|e bac|e back|eback|ebak) version",
+    ],
+    INTENT_LICENSE: [
+        "(what|what's|what is) the license (of|for|on) [the|this] translation",
+        "(what|which) license is (this|the) translation (under|in)",
+        "[what's|what is] this translation's license",
+    ],
+    # The language group, lists, adding and removing (the handlers check
+    # the integration's checkboxes)
+    INTENT_USE_LANGUAGE: [
+        "(use|switch to|choose|select) {ebac_language:language} translations",
+        "manipulate translations {ebac_language:language}",
+        "manipulate {ebac_language:language} translations",
+    ],
+    INTENT_LIST_LANGUAGES: [
+        "(which|what) languages (are there|can i (add|choose|use)|have translations)",
+        "(list|read) [the] languages",
+    ],
+    INTENT_LIST_AVAILABLE: [
+        "(which|what) translations (are there|can i add) [in {ebac_language:language}]",
+        "(list|read) [the] translations [that] (i can add|to add) [in {ebac_language:language}]",
+    ],
+    INTENT_LIST_ADDED: [
+        "(which|what) translations (are|have been) (added|installed)",
+        "(which|what) translations do (i|we) have",
+        "(list|read) [the] (added|installed) translations",
+    ],
+    INTENT_MORE_LIST: [
+        "more (languages|translations)",
+        "[list|read] [the] next (languages|translations)",
+    ],
+    INTENT_EARLIER_LIST: [
+        "(earlier|previous) (languages|translations)",
+    ],
+    INTENT_ADD: [
+        "(add|download|install) [the] translation {ebac_translation:name}",
+        "(add|download|install) the {ebac_translation:name} translation",
+    ],
+    INTENT_REMOVE: [
+        "(remove|delete|uninstall) [the] translation {ebac_translation:name}",
+        "(remove|delete|uninstall) the {ebac_translation:name} translation",
+    ],
+    # The answer to "Do you agree?" or "Are you sure?"
+    INTENT_YES: [
+        "yes",
+        "yes [i] (agree|do|am|please|i'm sure|i am sure)",
+        "i agree",
+        "yes (add|remove|delete) it",
+    ],
+    INTENT_NO: [
+        "no",
+        "no (thanks|thank you|i don't|don't|i do not)",
+        "i (don't|do not) agree",
+        "(don't|do not) (add|remove|delete) it",
+    ],
 }
 
 
@@ -203,6 +312,7 @@ def build(books: list[dict[str, Any]], numbers: list[dict[str, Any]]) -> dict:
             "ebac_words": {"wildcard": True},
             "ebac_ordinal": {"values": ORDINALS},
             "ebac_translation": {"wildcard": True},
+            "ebac_language": {"wildcard": True},
         },
     }
 

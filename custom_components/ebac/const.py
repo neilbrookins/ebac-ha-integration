@@ -9,6 +9,16 @@ CONF_URL = "url"
 # Options
 CONF_TRANSLATION = "translation"  # the translation to read from ("AV")
 CONF_READ_ON = "read_on"  # how many verses "read on" reads
+# What Assist may do beyond reading (see "Permissions" in EBaC's
+# readme.architecture): each off unless checked, each needing the one
+# before it. Anyone who can talk to a speaker can use them.
+CONF_ALLOW_CHANGE = "allow_change"  # change the translation
+CONF_ALLOW_ADD = "allow_add"  # add translations (needs change)
+CONF_ALLOW_REMOVE = "allow_remove"  # remove translations (needs add)
+# The language group: the language "add translation X" looks in (a code,
+# as the EBaC app's list of translations has them: en, es, grc)
+CONF_LANGUAGE = "language"
+DEFAULT_LANGUAGE = "en"
 DEFAULT_READ_ON = 5
 MAX_READ_ON = 20
 
@@ -39,6 +49,34 @@ INTENT_PREVIOUS_RESULT = "EbacPreviousResult"
 INTENT_MORE_RESULTS = "EbacMoreResults"
 INTENT_EARLIER_RESULTS = "EbacEarlierResults"
 INTENT_BACK_TO_RESULTS = "EbacBackToResults"
+INTENT_USE_LANGUAGE = "EbacUseLanguage"
+INTENT_LIST_LANGUAGES = "EbacListLanguages"
+INTENT_LIST_AVAILABLE = "EbacListAvailable"
+INTENT_LIST_ADDED = "EbacListAdded"
+INTENT_MORE_LIST = "EbacMoreList"
+INTENT_EARLIER_LIST = "EbacEarlierList"
+INTENT_ADD = "EbacAdd"
+INTENT_REMOVE = "EbacRemove"
+INTENT_YES = "EbacYes"
+INTENT_NO = "EbacNo"
+INTENT_NEXT_CHAPTER = "EbacNextChapter"
+INTENT_PREVIOUS_CHAPTER = "EbacPreviousChapter"
+INTENT_START_CHAPTER = "EbacStartOfChapter"
+INTENT_READ_BACK = "EbacReadBack"
+INTENT_NEXT_BOOK = "EbacNextBook"
+INTENT_PREVIOUS_BOOK = "EbacPreviousBook"
+INTENT_START_BOOK = "EbacStartOfBook"
+INTENT_VERSION = "EbacVersion"
+INTENT_LICENSE = "EbacLicense"
 
 # How many of a search's results are listed at a time (their references).
 RESULTS_PER_LIST = 5
+
+# How many languages or translations are listed at a time, by voice
+ITEMS_PER_LIST = 10
+# How long a question ("Do you agree?", "Are you sure?") waits for its
+# yes, in seconds
+CONFIRM_SECONDS = 300
+# How often an add's progress is asked for, and for how long at most
+ADD_POLL_SECONDS = 10
+ADD_MAX_SECONDS = 3600

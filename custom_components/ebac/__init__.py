@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -28,9 +29,14 @@ from . import intents as ebac_intents
 from . import sentences
 from .api import EbacApi, EbacError
 from .const import (
+    CONF_ALLOW_ADD,
+    CONF_ALLOW_CHANGE,
+    CONF_ALLOW_REMOVE,
+    CONF_LANGUAGE,
     CONF_READ_ON,
     CONF_TRANSLATION,
     CONF_URL,
+    DEFAULT_LANGUAGE,
     DEFAULT_READ_ON,
     DOMAIN,
     STORAGE_KEY,
@@ -53,6 +59,19 @@ class EbacData:
     # Leningrad Codex has no John")
     books: set[str] = field(default_factory=set)
     title: str = ""
+    # its books in order, with their chapters (/books): for "next chapter"
+    book_list: list[dict[str, Any]] = field(default_factory=list)
+    # what Assist may do beyond reading (the checkboxes), and the language
+    # group "add translation" looks in
+    allow_change: bool = False
+    allow_add: bool = False
+    allow_remove: bool = False
+    language: str = DEFAULT_LANGUAGE
+    # questions waiting for a yes, by place key: {"action": "add" or
+    # "remove", "name", "title", "until": time}
+    pending: dict[str, dict] = field(default_factory=dict)
+    # ebac-admin's catalog, kept a few minutes: (time, catalog)
+    catalog: tuple[float, dict] | None = None
 
 
 class Places:
@@ -114,13 +133,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
 
     places = Places(hass)
     await places.async_load()
+    options = entry.options
+    allow_change = bool(options.get(CONF_ALLOW_CHANGE, False))
+    allow_add = allow_change and bool(options.get(CONF_ALLOW_ADD, False))
     entry.runtime_data = EbacData(
         api=api,
         translation=translation,
-        read_on=int(entry.options.get(CONF_READ_ON, DEFAULT_READ_ON)),
+        read_on=int(options.get(CONF_READ_ON, DEFAULT_READ_ON)),
         places=places,
         books={book["full_name"] for book in books},
         title=title,
+        book_list=books,
+        allow_change=allow_change,
+        allow_add=allow_add,
+        allow_remove=allow_add and bool(options.get(CONF_ALLOW_REMOVE, False)),
+        language=options.get(CONF_LANGUAGE) or DEFAULT_LANGUAGE,
     )
     hass.data[DOMAIN] = entry.runtime_data
 

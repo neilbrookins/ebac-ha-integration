@@ -2,8 +2,14 @@
 
 ebac-api is a CGI program: http://HOST:8080/cgi-bin/ebac/REQUEST?PARAMS.
 Its requests are described in EBaC's readme.architecture, under "Voice":
-translations, books, numbers, parse, verse, next, previous and search.
-An error is HTTP 400 with {"error": "..."}.
+translations, books, numbers, parse, verse, next, previous, search, info
+and license. An error is HTTP 400 with {"error": "..."}.
+
+Beside it, ebac-admin (http://HOST:8080/cgi-bin/ebac-admin/REQUEST)
+adds and removes translations, only as the EBaC app's options allow:
+permissions, catalog, license, check, add, status and remove (see the top
+of EBaC's ebac-admin). Its refusals are errors too (HTTP 403, or 409 when
+another add is under way).
 """
 
 from __future__ import annotations
@@ -14,6 +20,8 @@ from typing import Any
 import aiohttp
 
 TIMEOUT = 15  # seconds (a search of a common word takes well under one)
+# ebac-admin's catalog downloads the list of translations first
+ADMIN_TIMEOUT = 90
 
 
 class EbacError(Exception):
@@ -26,15 +34,22 @@ class EbacApi:
     def __init__(self, session: aiohttp.ClientSession, url: str) -> None:
         self._session = session
         self._url = url.rstrip("/")
+        # ebac-admin, beside ebac-api: .../cgi-bin/ebac -> .../cgi-bin/ebac-admin
+        base, _, last = self._url.rpartition("/")
+        self._admin = f"{self._url}-admin" if last == "ebac" else f"{base}/ebac-admin"
 
-    async def request(self, request: str, **params: Any) -> dict[str, Any]:
-        """Make a request; its JSON answer, or EbacError."""
+    async def request(
+        self, request: str, *, admin: bool = False, **params: Any
+    ) -> dict[str, Any]:
+        """Make a request (of ebac-admin, if admin); its JSON answer, or
+        EbacError."""
         params = {k: str(v) for k, v in params.items() if v is not None}
+        url = self._admin if admin else self._url
         try:
             async with self._session.get(
-                f"{self._url}/{request}",
+                f"{url}/{request}",
                 params=params,
-                timeout=aiohttp.ClientTimeout(total=TIMEOUT),
+                timeout=aiohttp.ClientTimeout(total=ADMIN_TIMEOUT if admin else TIMEOUT),
             ) as response:
                 try:
                     answer = await response.json(content_type=None)
@@ -43,7 +58,7 @@ class EbacApi:
                         f"EBaC's answer wasn't understood (HTTP {response.status})"
                     ) from err
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            raise EbacError(f"EBaC can't be reached at {self._url}") from err
+            raise EbacError(f"EBaC can't be reached at {url}") from err
         if not isinstance(answer, dict):
             raise EbacError("EBaC's answer wasn't understood")
         if "error" in answer:
@@ -89,3 +104,41 @@ class EbacApi:
         return await self.request(
             "search", t=translation, q=words, max=most, start=start
         )
+
+    async def info(self) -> dict[str, Any]:
+        """EBaC's release, commit and package, and where to get help."""
+        return await self.request("info")
+
+    async def license(self, translation: str) -> dict[str, Any]:
+        """The license kept when a translation was added ("recorded")."""
+        return await self.request("license", t=translation)
+
+    # ---- ebac-admin: adding and removing translations
+
+    async def permissions(self) -> dict[str, bool]:
+        """What the EBaC app's options allow: {"add": ..., "remove": ...}."""
+        return await self.request("permissions", admin=True)
+
+    async def catalog(self) -> dict[str, Any]:
+        """Every language and translation that can be added."""
+        return await self.request("catalog", admin=True)
+
+    async def source_license(self, name: str) -> dict[str, Any]:
+        """A translation's title, license and details page, from the source."""
+        return await self.request("license", admin=True, name=name)
+
+    async def check(self, name: str) -> dict[str, Any]:
+        """Whether it is added, and if so whether it is the same version."""
+        return await self.request("check", admin=True, name=name)
+
+    async def add(self, name: str, agreed: str) -> dict[str, Any]:
+        """Start adding it (in the background), agreeing to its license."""
+        return await self.request("add", admin=True, name=name, agreed=agreed)
+
+    async def status(self, name: str) -> dict[str, Any]:
+        """How its add is going: running, done, failed, or none."""
+        return await self.request("status", admin=True, name=name)
+
+    async def remove(self, name: str) -> dict[str, Any]:
+        """Remove it."""
+        return await self.request("remove", admin=True, name=name)

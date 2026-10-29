@@ -9,6 +9,7 @@ verse" on the kitchen speaker goes on from what the kitchen heard.
 from __future__ import annotations
 
 import re
+import time
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -17,8 +18,31 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import intent
 
+from . import adding
 from .api import EbacError
 from .const import (
+    CONF_LANGUAGE,
+    CONFIRM_SECONDS,
+    ITEMS_PER_LIST,
+    INTENT_USE_LANGUAGE,
+    INTENT_LIST_LANGUAGES,
+    INTENT_LIST_AVAILABLE,
+    INTENT_LIST_ADDED,
+    INTENT_MORE_LIST,
+    INTENT_EARLIER_LIST,
+    INTENT_ADD,
+    INTENT_REMOVE,
+    INTENT_YES,
+    INTENT_NO,
+    INTENT_NEXT_CHAPTER,
+    INTENT_PREVIOUS_CHAPTER,
+    INTENT_START_CHAPTER,
+    INTENT_READ_BACK,
+    INTENT_NEXT_BOOK,
+    INTENT_PREVIOUS_BOOK,
+    INTENT_START_BOOK,
+    INTENT_VERSION,
+    INTENT_LICENSE,
     DOMAIN,
     INTENT_NEXT,
     INTENT_PREVIOUS,
@@ -43,6 +67,14 @@ if TYPE_CHECKING:
 
 NO_PLACE = "Say a verse first, such as John 3:16."
 NOT_SET_UP = "EBaC isn't set up."
+
+
+def not_allowed(what: str) -> str:
+    """The answer when a checkbox is off."""
+    return (
+        f"{what} by voice isn't allowed. It can be allowed under Configure, "
+        "in the EBaC integration's settings."
+    )
 
 
 def place_key(intent_obj: intent.Intent) -> str:
@@ -112,6 +144,9 @@ class EbacHandler(intent.IntentHandler):
                 "first": verses[0]["svn"],
                 "last": verses[-1]["svn"],
                 "count": len(verses),
+                # (for "next chapter": where the last verse read is)
+                "book": verses[-1].get("book"),
+                "chapter": verses[-1].get("chapter"),
             },
         )
         return " ".join(verse["spoken"] for verse in verses)
@@ -421,6 +456,8 @@ class TranslationHandler(EbacHandler):
     slot_schema = {vol.Required("name"): cv.string}
 
     async def answer(self, intent_obj, data, key):
+        if not data.allow_change:
+            return not_allowed("Changing the translation")
         slots = self.async_validate_slots(intent_obj.slots)
         said = slots["name"]["value"].strip(" .?!")
         translations = await data.api.translations()
@@ -458,9 +495,487 @@ class WhichTranslationHandler(EbacHandler):
             if this
             else f"Reading from {current}."
         )
-        if others:
+        # (with changing not allowed, the others aren't named: their names
+        # may be private too, as a diary's)
+        if others and data.allow_change:
             speech += " Also installed: " + "; ".join(spoken_title(t) for t in others) + "."
         return speech
+
+
+# ---- moving through the text: chapters, books, back ----------------------
+
+
+class MoveHandler(EbacHandler):
+    """What "next chapter", "next book" and the like share: where the last
+    verse read is (its book, as a number in the translation's books, and
+    its chapter), and reading a chapter's first verses."""
+
+    async def where(self, data: EbacData, key: str) -> tuple[int, int] | None:
+        place = await self.place(data, key)
+        if place is None:
+            return None
+        book, chapter = place.get("book"), place.get("chapter")
+        if (not book or not chapter) and place.get("last_ref"):
+            # (kept before the book and chapter were: "Song of Solomon 2:1")
+            ref = place["last_ref"]
+            book, _, numbers = ref.rpartition(" ")
+            try:
+                chapter = int(numbers.split(":")[0])
+            except ValueError:
+                return None
+        names = [b["full_name"] for b in data.book_list]
+        if book not in names:
+            return None
+        return names.index(book), int(chapter)
+
+    async def read_chapter(self, data: EbacData, key: str, b: int, chapter: int) -> str:
+        """The first verses of a chapter, as "Psalm 23" reads."""
+        book = data.book_list[b]["full_name"]
+        return self.speak(
+            data, key, await data.api.verse(data.translation, f"{book} {chapter}", data.read_on)
+        )
+
+    def end(self, data: EbacData) -> str:
+        the = "" if data.title.lower().startswith("the ") else "the "
+        return f"That's the end of {the}{data.title}."
+
+    def beginning(self, data: EbacData) -> str:
+        the = "" if data.title.lower().startswith("the ") else "the "
+        return f"That's the beginning of {the}{data.title}."
+
+    async def answer(self, intent_obj, data, key):
+        if (at := await self.where(data, key)) is None:
+            return NO_PLACE
+        return await self.move(data, key, *at)
+
+    async def move(self, data: EbacData, key: str, b: int, chapter: int) -> str:
+        raise NotImplementedError
+
+
+class NextChapterHandler(MoveHandler):
+    """ "Next chapter": on into the next book after a book's last."""
+
+    async def move(self, data, key, b, chapter):
+        if chapter < data.book_list[b]["chapters"]:
+            return await self.read_chapter(data, key, b, chapter + 1)
+        if b + 1 < len(data.book_list):
+            return await self.read_chapter(data, key, b + 1, 1)
+        return self.end(data)
+
+
+class PreviousChapterHandler(MoveHandler):
+    """ "Previous chapter": back into the book before, from a first chapter."""
+
+    async def move(self, data, key, b, chapter):
+        if chapter > 1:
+            return await self.read_chapter(data, key, b, chapter - 1)
+        if b > 0:
+            return await self.read_chapter(data, key, b - 1, data.book_list[b - 1]["chapters"])
+        return self.beginning(data)
+
+
+class StartOfChapterHandler(MoveHandler):
+    """ "Start of the chapter"."""
+
+    async def move(self, data, key, b, chapter):
+        return await self.read_chapter(data, key, b, chapter)
+
+
+class NextBookHandler(MoveHandler):
+    """ "Next book" (f in the app)."""
+
+    async def move(self, data, key, b, chapter):
+        if b + 1 < len(data.book_list):
+            return await self.read_chapter(data, key, b + 1, 1)
+        return self.end(data)
+
+
+class PreviousBookHandler(MoveHandler):
+    """ "Previous book" (b in the app, from a book's start)."""
+
+    async def move(self, data, key, b, chapter):
+        if b > 0:
+            return await self.read_chapter(data, key, b - 1, 1)
+        return self.beginning(data)
+
+
+class StartOfBookHandler(MoveHandler):
+    """ "Start of the book"."""
+
+    async def move(self, data, key, b, chapter):
+        return await self.read_chapter(data, key, b, 1)
+
+
+class ReadBackHandler(EbacHandler):
+    """ "Read back": the verses before, as many as "read on" reads."""
+
+    async def answer(self, intent_obj, data, key):
+        if (place := await self.place(data, key)) is None:
+            return NO_PLACE
+        answer = await data.api.previous(data.translation, place["first"], data.read_on)
+        if not answer.get("verses"):
+            the = "" if data.title.lower().startswith("the ") else "the "
+            return f"That's the beginning of {the}{data.title}."
+        return self.speak(data, key, answer)
+
+
+# ---- information --------------------------------------------------------
+
+
+class VersionHandler(EbacHandler):
+    """ "What version of EBaC is this?": as on its Information screen."""
+
+    async def answer(self, intent_obj, data, key):
+        info = await data.api.info()
+        speech = f"This is EBaC {info.get('release', '')}"
+        commit = (info.get("commit") or "").split(",")[0].strip()
+        if commit:
+            speech += f", built from commit {commit}"
+        if info.get("package"):
+            speech += f", in the {info['package']}"
+        return speech + (
+            ". For help, or to report a problem, open an issue on GitHub, in "
+            "neilbrookins's repositories: ebac for the program, ebac-ha-app "
+            "for the Home Assistant app, and ebac-ha-integration for voice."
+        )
+
+
+class LicenseHandler(EbacHandler):
+    """ "What's the license of this translation?": as agreed when it was
+    added."""
+
+    async def answer(self, intent_obj, data, key):
+        translations = await data.api.translations()
+        current = data.translation or (translations[0]["name"] if translations else "")
+        this = next((t for t in translations if t["name"] == current), None)
+        spoken = spoken_title(this) if this else current
+        kept = await data.api.license(current)
+        if not kept.get("recorded"):
+            return (
+                f"No license was recorded for {spoken}: it comes with EBaC, "
+                "or was added before EBaC kept licenses."
+            )
+        speech = f"{spoken}: its license is {kept.get('license', 'not stated')}"
+        if kept.get("agreed"):
+            speech += f". Agreed to on {kept['agreed']}"
+        return speech + "."
+
+
+# ---- the language group, lists, adding and removing ----------------------
+
+
+CATALOG_SECONDS = 600  # how long the catalog is kept
+
+
+async def catalog(data: EbacData) -> dict[str, Any]:
+    """ebac-admin's catalog (kept a few minutes: it downloads the list)."""
+    if data.catalog and time.monotonic() - data.catalog[0] < CATALOG_SECONDS:
+        return data.catalog[1]
+    found = await data.api.catalog()
+    data.catalog = (time.monotonic(), found)
+    return found
+
+
+def language_name(language: dict[str, Any]) -> str:
+    """A language, as said: its English name (else its own, else its code)."""
+    return language.get("english") or language.get("own") or language["code"]
+
+
+def language_of(code: str, languages: list[dict[str, Any]]) -> str:
+    """The name of the language with this code."""
+    for language in languages:
+        if language["code"] == code:
+            return language_name(language)
+    return code
+
+
+def match_languages(said: str, languages: list[dict[str, Any]]) -> list[dict]:
+    """The languages the words name: the code, the English name or the
+    language's own; else those whose names have every word said."""
+    said_words = [w for w in words_of(said) if w not in ("the", "language", "translations")]
+    if not said_words:
+        return []
+    joined = "".join(said_words)
+    exact = [
+        lang
+        for lang in languages
+        if lang["code"].replace("-", "") == joined
+        or words_of(lang.get("english", "")) == said_words
+        or words_of(lang.get("own", "")) == said_words
+    ]
+    if exact:
+        return exact
+    return [
+        lang
+        for lang in languages
+        if all(w in words_of(f"{lang.get('english', '')} {lang.get('own', '')}") for w in said_words)
+    ]
+
+
+def list_key(key: str) -> str:
+    """Where a device's last list (languages, translations) is kept."""
+    return f"{key}|list"
+
+
+def say_list(data: EbacData, key: str, kind: str, items: list[str], start: int, intro: str = "") -> str:
+    """Items from start (1 for the first), ITEMS_PER_LIST of them, and what
+    can be said next; the list is kept, for "more"."""
+    data.places.set(list_key(key), {"kind": kind, "items": items, "start": start})
+    shown = items[start - 1 : start - 1 + ITEMS_PER_LIST]
+    last = start + len(shown) - 1
+    text = intro + "; ".join(f"{start + i}, {item}" for i, item in enumerate(shown)) + "."
+    if last < len(items):
+        text += f" Say more {kind} ({last} of {len(items)})."
+    return text
+
+
+def set_option(intent_obj: intent.Intent, **changes: Any) -> bool:
+    """Change the integration's options (EBaC is then set up again)."""
+    entries = intent_obj.hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        return False
+    entry = entries[0]
+    intent_obj.hass.config_entries.async_update_entry(
+        entry, options={**entry.options, **changes}
+    )
+    return True
+
+
+class UseLanguageHandler(EbacHandler):
+    """ "Use Spanish translations", "manipulate translations Spanish": the
+    language "add translation" looks in, from now on (the whole house)."""
+
+    slot_schema = {vol.Required("language"): cv.string}
+
+    async def answer(self, intent_obj, data, key):
+        if not data.allow_add:
+            return not_allowed("Adding translations")
+        said = self.async_validate_slots(intent_obj.slots)["language"]["value"].strip(" .?!")
+        languages = (await catalog(data))["languages"]
+        found = match_languages(said, languages)
+        if not found:
+            return f'No language called "{said}" has translations. Say "which languages are there?" to hear them.'
+        if len(found) > 1:
+            return "Which one: " + "; or ".join(language_name(lang) for lang in found) + "?"
+        language = found[0]
+        if language["code"] == data.language:
+            return f"Already adding translations in {language_name(language)}."
+        if not set_option(intent_obj, **{CONF_LANGUAGE: language["code"]}):
+            return NOT_SET_UP
+        count = language.get("count", 0)
+        return (
+            f"Translations in {language_name(language)} from now on: "
+            f"{count} translation{'s' if count != 1 else ''}. "
+            'Say "what translations are there?" to hear them.'
+        )
+
+
+class ListLanguagesHandler(EbacHandler):
+    """ "Which languages are there?"."""
+
+    async def answer(self, intent_obj, data, key):
+        if not data.allow_add:
+            return not_allowed("Adding translations")
+        languages = (await catalog(data))["languages"]
+        items = [f"{language_name(lang)}, {lang.get('count', 0)}" for lang in languages]
+        intro = (
+            f"{len(languages)} languages, with how many translations each; "
+            f"now adding in {language_of(data.language, languages)}: "
+        )
+        return say_list(data, key, "languages", items, 1, intro)
+
+
+class ListAvailableHandler(EbacHandler):
+    """ "What translations are there?" (in the language group, or the
+    language said)."""
+
+    slot_schema = {vol.Optional("language"): cv.string}
+
+    async def answer(self, intent_obj, data, key):
+        if not data.allow_add:
+            return not_allowed("Adding translations")
+        slots = self.async_validate_slots(intent_obj.slots)
+        found = await catalog(data)
+        code = data.language
+        if "language" in slots:
+            said = slots["language"]["value"].strip(" .?!")
+            matches = match_languages(said, found["languages"])
+            if len(matches) != 1:
+                return f'Which language is "{said}"? Say "which languages are there?" to hear them.'
+            code = matches[0]["code"]
+        name = language_of(code, found["languages"])
+        translations = [t for t in found["translations"] if t["language"] == code]
+        if not translations:
+            return f"There are no translations in {name}."
+        items = [
+            f"{t['name']}: {t['title']}" + (", added" if t.get("added") else "")
+            for t in translations
+        ]
+        return say_list(data, key, "translations", items, 1, f"{len(items)} in {name}: ")
+
+
+class ListAddedHandler(EbacHandler):
+    """ "Which translations are added?"."""
+
+    async def answer(self, intent_obj, data, key):
+        translations = await data.api.translations()
+        current = data.translation or (translations[0]["name"] if translations else "")
+        if not data.allow_change:
+            # (the others aren't named: see "which translation is this")
+            this = [t for t in translations if t["name"] == current]
+            return f"Reading from {spoken_title(this[0]) if this else current}."
+        items = [spoken_title(t) for t in translations]
+        return say_list(data, key, "translations", items, 1, f"{len(items)} added: ")
+
+
+class MoreListHandler(EbacHandler):
+    """ "More languages", "more translations": the next of the last list."""
+
+    step = 1
+
+    async def answer(self, intent_obj, data, key):
+        kept = data.places.get(list_key(key))
+        if not kept:
+            return 'Ask for a list first, such as "which languages are there?".'
+        start = kept["start"] + self.step * ITEMS_PER_LIST
+        if start > len(kept["items"]):
+            return f"That's all {len(kept['items'])}."
+        return say_list(data, key, kept["kind"], kept["items"], max(1, start))
+
+
+class EarlierListHandler(MoreListHandler):
+    """ "Earlier languages": the ones before."""
+
+    step = -1
+
+
+class AddHandler(EbacHandler):
+    """ "Add translation LITV": in the language group; its license is read,
+    and "Do you agree?" waits for a yes."""
+
+    slot_schema = {vol.Required("name"): cv.string}
+
+    async def answer(self, intent_obj, data, key):
+        if not data.allow_add:
+            return not_allowed("Adding translations")
+        said = self.async_validate_slots(intent_obj.slots)["name"]["value"].strip(" .?!")
+        found = await catalog(data)
+        language = language_of(data.language, found["languages"])
+        in_group = [t for t in found["translations"] if t["language"] == data.language]
+        matches = match_translations(said, in_group)
+        if not matches:
+            elsewhere = match_translations(said, found["translations"])
+            speech = f'No translation in {language} is called "{said}".'
+            if len(elsewhere) == 1:
+                other = language_of(elsewhere[0]["language"], found["languages"])
+                speech += f' There is one in {other}: say "use {other} translations" first.'
+            else:
+                speech += ' Say "what translations are there?" to hear them.'
+            return speech
+        if len(matches) > 1:
+            return "Which one: " + "; or ".join(spoken_title(t) for t in matches) + "?"
+        chosen = matches[0]
+        spoken = spoken_title(chosen)
+        if chosen.get("added"):
+            check = await data.api.check(chosen["name"])
+            if check.get("same_version"):
+                return (
+                    f"You already have this version of {spoken}, downloaded "
+                    f"{check.get('downloaded', '')}. To download it again, remove "
+                    "it first, then add it."
+                )
+        terms = await data.api.source_license(chosen["name"])
+        data.pending[key] = {
+            "action": "add",
+            "name": chosen["name"],
+            "title": chosen["title"],
+            "until": time.monotonic() + CONFIRM_SECONDS,
+        }
+        return (
+            f"{spoken}. Its license: {terms.get('license') or 'not stated'}. "
+            "The details are on CrossWire's page for it. "
+            "Say yes or no: do you agree to its license?"
+        )
+
+
+class RemoveHandler(EbacHandler):
+    """ "Remove translation LITV": "Are you sure?" waits for a yes."""
+
+    slot_schema = {vol.Required("name"): cv.string}
+
+    async def answer(self, intent_obj, data, key):
+        if not data.allow_remove:
+            return not_allowed("Removing translations")
+        said = self.async_validate_slots(intent_obj.slots)["name"]["value"].strip(" .?!")
+        translations = await data.api.translations()
+        matches = match_translations(said, translations)
+        if not matches:
+            names = "; ".join(spoken_title(t) for t in translations)
+            return f'No translation added is called "{said}". Added: {names}.'
+        if len(matches) > 1:
+            return "Which one: " + "; or ".join(spoken_title(t) for t in matches) + "?"
+        chosen = matches[0]
+        data.pending[key] = {
+            "action": "remove",
+            "name": chosen["name"],
+            "title": chosen["title"],
+            "until": time.monotonic() + CONFIRM_SECONDS,
+        }
+        return f"Say yes or no: are you sure you want to remove {spoken_title(chosen)}?"
+
+
+class YesHandler(EbacHandler):
+    """ "Yes": to the question asked last on this device ("Do you agree?",
+    "Are you sure?"), if it is still waiting."""
+
+    async def answer(self, intent_obj, data, key):
+        pending = data.pending.pop(key, None)
+        if pending is None or pending["until"] < time.monotonic():
+            return "There's no question waiting for a yes."
+        name, title = pending["name"], pending["title"]
+        spoken = f"{title} ({name})"
+        if pending["action"] == "add":
+            if not data.allow_add:
+                return not_allowed("Adding translations")
+            who = await adding.asker(intent_obj)
+            await data.api.add(name, adding.agreed_text(who))
+            intent_obj.hass.async_create_background_task(
+                adding.watch_add(intent_obj.hass, name, title, who),
+                f"EBaC: adding {name}",
+            )
+            return f"Adding {spoken}. It takes a minute or two; you'll be told when it's done."
+        if not data.allow_remove:
+            return not_allowed("Removing translations")
+        translations = await data.api.translations()
+        current = data.translation or (translations[0]["name"] if translations else "")
+        await data.api.remove(name)
+        if name != current:
+            # (set up again: the books of the translations left)
+            entries = intent_obj.hass.config_entries.async_entries(DOMAIN)
+            if entries:
+                intent_obj.hass.async_create_task(
+                    intent_obj.hass.config_entries.async_reload(entries[0].entry_id)
+                )
+            return f"Removed {spoken}."
+        # The one in use: the app's default instead (the first of trans now)
+        left = await data.api.translations()
+        if not left:
+            return f"Removed {spoken}."
+        set_option(intent_obj, **{CONF_TRANSLATION: left[0]["name"]})
+        return f"Removed {spoken}. Now reading from {spoken_title(left[0])}."
+
+
+class NoHandler(EbacHandler):
+    """ "No": the question waiting is answered no, and nothing is done."""
+
+    async def answer(self, intent_obj, data, key):
+        pending = data.pending.pop(key, None)
+        if pending is None or pending["until"] < time.monotonic():
+            return "There's no question waiting."
+        spoken = f"{pending['title']} ({pending['name']})"
+        if pending["action"] == "add":
+            return f"All right: {spoken} isn't added."
+        return f"All right: {spoken} isn't removed."
 
 
 HANDLERS = {
@@ -478,6 +993,25 @@ HANDLERS = {
     INTENT_BACK_TO_RESULTS: BackToResultsHandler,
     INTENT_TRANSLATION: TranslationHandler,
     INTENT_WHICH_TRANSLATION: WhichTranslationHandler,
+    INTENT_USE_LANGUAGE: UseLanguageHandler,
+    INTENT_LIST_LANGUAGES: ListLanguagesHandler,
+    INTENT_LIST_AVAILABLE: ListAvailableHandler,
+    INTENT_LIST_ADDED: ListAddedHandler,
+    INTENT_MORE_LIST: MoreListHandler,
+    INTENT_EARLIER_LIST: EarlierListHandler,
+    INTENT_ADD: AddHandler,
+    INTENT_REMOVE: RemoveHandler,
+    INTENT_YES: YesHandler,
+    INTENT_NO: NoHandler,
+    INTENT_NEXT_CHAPTER: NextChapterHandler,
+    INTENT_PREVIOUS_CHAPTER: PreviousChapterHandler,
+    INTENT_START_CHAPTER: StartOfChapterHandler,
+    INTENT_READ_BACK: ReadBackHandler,
+    INTENT_NEXT_BOOK: NextBookHandler,
+    INTENT_PREVIOUS_BOOK: PreviousBookHandler,
+    INTENT_START_BOOK: StartOfBookHandler,
+    INTENT_VERSION: VersionHandler,
+    INTENT_LICENSE: LicenseHandler,
 }
 
 

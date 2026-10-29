@@ -183,6 +183,7 @@ class ReadHandler(EbacHandler):
         vol.Optional("chapter"): vol.Any(int, float, cv.string),
         vol.Optional("verse"): vol.Any(int, float, cv.string),
         vol.Optional("to"): vol.Any(int, float, cv.string),
+        vol.Optional("intro"): cv.string,
     }
 
     async def answer(self, intent_obj, data, key):
@@ -197,6 +198,10 @@ class ReadHandler(EbacHandler):
         # The reference as text, for ebac-api to read ("Jude 3 to 5" is
         # Jude 1:3-5: its rules are in one place, EBaC's parser).
         ref = book
+        if "intro" in slots:
+            # (verse 0: the text before the chapter's verse 1)
+            ref += f" {chapter or 1} introduction"
+            return self.speak(data, key, await data.api.verse(data.translation, ref))
         if chapter:
             ref += f" {chapter}"
         if verse:

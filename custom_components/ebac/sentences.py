@@ -97,6 +97,15 @@ READ_SENTENCES = [
     "read [the] [book of] {ebac_book:book}",
 ]
 
+# The text before a chapter's verse 1, where a text has it (verse 0: a
+# book's heading and summary, in the Book of Mormon from Project
+# Gutenberg): "Jacob introduction", "the introduction to Alma chapter 5".
+# (A fixed slot, intro, tells the handler.)
+INTRO_SENTENCES = [
+    f"{BOOK} [chapter {CHAPTER}] introduction",
+    "[read] [the] introduction (to|of) [the] [book of] {ebac_book:book} [chapter " + CHAPTER + "]",
+]
+
 OTHER_SENTENCES = {
     INTENT_NEXT: [
         "[read] [the] (next|following) verse",
@@ -299,7 +308,14 @@ def build(books: list[dict[str, Any]], numbers: list[dict[str, Any]]) -> dict:
         if not form.isdigit()
     ]
     most = max((entry["number"] for entry in numbers), default=1)
-    intents: dict[str, Any] = {INTENT_READ: {"data": [{"sentences": READ_SENTENCES}]}}
+    intents: dict[str, Any] = {
+        INTENT_READ: {
+            "data": [
+                {"sentences": READ_SENTENCES},
+                {"sentences": INTRO_SENTENCES, "slots": {"intro": "yes"}},
+            ]
+        }
+    }
     for intent, sentences in OTHER_SENTENCES.items():
         intents[intent] = {"data": [{"sentences": sentences}]}
     return {

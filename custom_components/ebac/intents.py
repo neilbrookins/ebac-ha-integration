@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 import time
+import unicodedata
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -418,8 +419,14 @@ class BackToResultsHandler(ResultsHandler):
 
 
 def words_of(text: str) -> list[str]:
-    """The words of text, in small letters, without punctuation."""
-    return re.findall(r"\w+", text.lower())
+    """The words of text, in small letters, without punctuation or
+    accents: a name is matched as said, and speech to text may leave the
+    accent off ("Reina Valera Gomez" for Gómez). (Searches, unlike names,
+    keep accents exactly.)"""
+    plain = "".join(
+        c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)
+    )
+    return re.findall(r"\w+", plain.lower())
 
 
 def spoken_title(translation: dict[str, str]) -> str:

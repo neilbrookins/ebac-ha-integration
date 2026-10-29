@@ -136,7 +136,7 @@ async def watch_add(hass: HomeAssistant, name: str, title: str, who: Asker) -> N
         try:
             status = await data.api.status(name)
         except EbacError as err:
-            _LOGGER.debug("Asking how adding %s goes: %s", name, err)
+            _LOGGER.warning("Asking how adding %s goes: %s", name, err)
             continue
         state = status.get("state", "")
         message = status.get("message", "")
@@ -158,6 +158,7 @@ async def watch_add(hass: HomeAssistant, name: str, title: str, who: Asker) -> N
         message = "it was still going after an hour"
     elif not message:
         message = "it stopped without saying why"
+    _LOGGER.warning("Adding %s by voice (from %s) failed: %s", name, who.name, message)
     ir.async_create_issue(
         hass,
         DOMAIN,

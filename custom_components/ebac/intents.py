@@ -199,7 +199,18 @@ class ReadHandler(EbacHandler):
         # Jude 1:3-5: its rules are in one place, EBaC's parser).
         ref = book
         if "intro" in slots:
-            # (verse 0: the text before the chapter's verse 1)
+            # The text before a book's chapter 1 is its chapter 0 (in the
+            # Book of Mormon from Project Gutenberg: its heading and
+            # summary, row by row); before another chapter's verse 1, that
+            # chapter's verse 0
+            if (chapter or 1) == 1:
+                try:
+                    return self.speak(
+                        data, key,
+                        await data.api.verse(data.translation, f"{book} 0:1", data.read_on),
+                    )
+                except EbacError:
+                    pass
             ref += f" {chapter or 1} introduction"
             return self.speak(data, key, await data.api.verse(data.translation, ref))
         if chapter:

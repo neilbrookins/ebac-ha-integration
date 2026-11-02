@@ -57,7 +57,7 @@ Anyone who can talk to a voice assistant, a speaker in a room or the Home Assist
 | Checkbox | The risk |
 |---|---|
 | **Allow Assist to change the translation** | someone could switch to a translation you keep private (your own diary, imported as one) and hear it read aloud |
-| **Allow Assist to add translations** | someone could add every translation of a language and fill Home Assistant's disk |
+| **Allow Assist to add translations** | none to the disk: adding stops while less than 1 GB is free (EBaC app 2.10.4 or later) |
 | **Allow Assist to remove translations** | someone could delete a translation you paid for, such as the NIV |
 
 With changing off, Assist reads only the translation chosen under **Configure**, and names no other. Adding and removing also need the EBaC app's own options, **Allow voice to add translations** and **Allow voice to remove translations** (under **Settings → Apps → EBaC → Configuration**), because the app's address can be reached by anything on Home Assistant's internal network.

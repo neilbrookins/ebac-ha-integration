@@ -30,7 +30,7 @@
           "translation": "Only translations added in the EBaC app are listed: add others there, with A at its main menu.",
           "language": "\"Add translation\" said to Assist looks in this language. Assist can change it: \"use Spanish translations\". The list comes from the EBaC app when its options allow adding.",
           "allow_change": "Risk: anyone who can talk to a voice assistant, with no password, could switch to a translation you keep private (your own diary, imported as one) and hear it read aloud. Off: Assist reads only the translation above.",
-          "allow_add": "Needs changing allowed. Risk: someone could add every translation of a language and fill Home Assistant's disk. The EBaC app's \"Allow voice to add translations\" option must be on too.",
+          "allow_add": "Needs changing allowed. The EBaC app's \"Allow voice to add translations\" option must be on too.",
           "allow_remove": "Needs adding allowed. Risk: someone could delete a translation you paid for, such as the NIV (Assist asks \"Are you sure?\" first). The EBaC app's \"Allow voice to remove translations\" option must be on too."
         }
       }
@@ -63,7 +63,7 @@
           "read_on": "Also how many verses are read for a chapter alone, such as \"Psalm 23\".",
           "language": "\"Add translation\" said to Assist looks in this language. Assist can change it: \"use Spanish translations\". The list comes from the EBaC app when its options allow adding.",
           "allow_change": "Risk: anyone who can talk to a voice assistant, with no password, could switch to a translation you keep private (your own diary, imported as one) and hear it read aloud. Off: Assist reads only the translation above.",
-          "allow_add": "Needs changing allowed. Risk: someone could add every translation of a language and fill Home Assistant's disk. The EBaC app's \"Allow voice to add translations\" option must be on too.",
+          "allow_add": "Needs changing allowed. The EBaC app's \"Allow voice to add translations\" option must be on too.",
           "allow_remove": "Needs adding allowed. Risk: someone could delete a translation you paid for, such as the NIV (Assist asks \"Are you sure?\" first). The EBaC app's \"Allow voice to remove translations\" option must be on too."
         },
         "description": "Anyone who can talk to a voice assistant can use what you allow here, with no user name or password: each box is off unless you check it, and each needs the one above it."

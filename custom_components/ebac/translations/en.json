@@ -88,6 +88,17 @@
           }
         }
       }
+    },
+    "app_unreachable": {
+      "title": "The EBaC app can't be reached",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "The EBaC app can't be reached",
+            "description": "EBaC hasn't answered at {url} for over 15 minutes. The EBaC app may have been stopped, or removed.\n\n- **If it was stopped**, start it again (Settings > Apps > EBaC).\n- **If it was removed** and you want EBaC back, install the app again. Removing it deleted its translations and search history; restoring a backup made before then (Settings > System > Backups) brings them back.\n- **If you're done with EBaC**, remove this integration too (Settings > Devices & services > EBaC > Delete).\n\nThis clears itself when EBaC answers again. Press **Submit** to clear it now; it won't be shown again until EBaC has answered and then stopped again."
+          }
+        }
+      }
     }
   }
 }

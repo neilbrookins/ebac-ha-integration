@@ -3,6 +3,13 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.6.3
+
+### Changed
+
+- **When the EBaC app can't be reached.** If EBaC hasn't answered for 15 minutes (the app stopped, or uninstalled), a repair under **Settings → Repairs** says so: start the app again, reinstall it (restoring a backup made before it was removed brings its translations back), or remove this integration. It clears itself when EBaC answers again; **Submit** clears it until EBaC has answered and stopped again.
+- README: "If the EBaC app is removed".
+
 ## 0.6.2
 
 The first published release of EBaC for Assist: Bible verses read aloud by Home Assistant's voice assistant, from the [EBaC app](https://github.com/neilbrookins/ebac-ha-app) (version 2.7.0 or later; 2.10.4 or later for adding translations safely by voice).

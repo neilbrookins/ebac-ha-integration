@@ -90,6 +90,12 @@ The EBaC app answers on port 8080 of Home Assistant's internal network only, so 
 
 Sentences are in English for now.
 
+## If the EBaC app is removed
+
+Uninstalling the EBaC app deletes its storage: the translations you added, everyone's search history, its options. Back up first (**Settings → System → Backups**, a backup that includes EBaC) if you might want them back; restoring that backup brings them back.
+
+This integration stays until you remove it too. If EBaC hasn't answered for 15 minutes, a repair under **Settings → Repairs** says so, with what to do: start the app again, reinstall it, or remove this integration. It clears itself when EBaC answers again.
+
 ## License
 
 GNU General Public License, version 2, as EBaC. See [`LICENSE`](LICENSE).

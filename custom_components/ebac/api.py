@@ -28,6 +28,11 @@ class EbacError(Exception):
     """ebac-api couldn't answer: the message says why, fit to be spoken."""
 
 
+class EbacUnreachable(EbacError):
+    """ebac-api didn't answer at all (the app stopped, or removed): see
+    reachable.py."""
+
+
 class EbacApi:
     """A client for one ebac-api."""
 
@@ -58,7 +63,7 @@ class EbacApi:
                         f"EBaC's answer wasn't understood (HTTP {response.status})"
                     ) from err
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            raise EbacError(f"EBaC can't be reached at {url}") from err
+            raise EbacUnreachable(f"EBaC can't be reached at {url}") from err
         if not isinstance(answer, dict):
             raise EbacError("EBaC's answer wasn't understood")
         if "error" in answer:

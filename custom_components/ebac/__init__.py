@@ -24,11 +24,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 
 from . import intents as ebac_intents
-from . import sentences
-from .api import EbacApi, EbacError
+from . import reachable, sentences
+from .api import EbacApi, EbacError, EbacUnreachable
 from .const import (
     CONF_ALLOW_ADD,
     CONF_ALLOW_CHANGE,
@@ -128,7 +129,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
                     known.add(book["full_name"])
                     all_books.append(book)
     except EbacError as err:
+        if isinstance(err, EbacUnreachable):
+            # (removed? after a while, a repair says so: reachable.py)
+            await reachable.async_unanswered(hass, entry.data[CONF_URL])
         raise ConfigEntryNotReady(str(err)) from err
+    await reachable.async_answered(hass)
     in_use = translation or (translations[0]["name"] if translations else "")
     title = next((t["title"] for t in translations if t["name"] == in_use), in_use)
 
@@ -167,6 +172,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         await _reload_assist(hass)
 
     entry.async_on_unload(entry.add_update_listener(_options_changed))
+
+    async def check(_now: Any) -> None:
+        """Does EBaC still answer? (removed, the repair: reachable.py)"""
+        try:
+            await api.translations()
+        except EbacUnreachable:
+            await reachable.async_unanswered(hass, entry.data[CONF_URL])
+        except EbacError:
+            pass  # (it answered: wrongly, but it's there)
+        else:
+            await reachable.async_answered(hass)
+
+    entry.async_on_unload(async_track_time_interval(hass, check, reachable.CHECK_EVERY))
     return True
 
 
@@ -179,7 +197,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> boo
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> None:
-    """EBaC removed: its sentence file too."""
+    """EBaC removed: its sentence file too, and any repair saying it can't
+    be reached."""
+    await reachable.async_forget(hass)
     if await hass.async_add_executor_job(sentences.remove, hass.config.config_dir):
         await _reload_assist(hass)
 

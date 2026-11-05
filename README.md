@@ -12,7 +12,7 @@ This integration needs the **EBaC app** ([github.com/neilbrookins/ebac-ha-app](h
    [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=neilbrookins&repository=ebac-ha-integration&category=integration)
 
    The first time, it asks for your Home Assistant's address. As EBaC isn't in Marketplace's own list yet, it is added as a custom repository, which Marketplace does only with Home Assistant connected to GitHub (it asks, once). If the button doesn't work for you, add it by hand: in Marketplace (or HACS), open the menu (⋮) → **Custom repositories** (or **Add by link**), add `https://github.com/neilbrookins/ebac-ha-integration` as an **Integration**.
-3. Restart Home Assistant.
+3. With HACS (Home Assistant before 2026.11), restart Home Assistant. With Marketplace (2026.11 and later), a new integration needs no restart: go on to step 4. (Updating it later does still need a restart, either way.)
 4. Under **Settings → Devices & services**, EBaC is shown as discovered: press **Add** and **Submit**. (If it isn't, press **Add integration**, choose EBaC, and keep the address filled in.)
 5. Choose the translation to read from (the King James Version is offered first), the language to add translations in (English unless you choose another), and what Assist may do beyond reading (see [What Assist may do](#what-assist-may-do)). Press **Submit**. You can change these later, under **Configure**.
 

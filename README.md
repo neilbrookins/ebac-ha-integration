@@ -7,7 +7,11 @@ This integration needs the **EBaC app** ([github.com/neilbrookins/ebac-ha-app](h
 ## Installing
 
 1. Install the EBaC app, if you haven't, and start it: **[installing the EBaC app](https://github.com/neilbrookins/ebac-ha-app#installing)** has a button that adds it to your Home Assistant in one click, and the steps after it. (Already have it? Make sure it is version 2.7.0 or later, under **Settings → Apps → EBaC**.)
-2. In HACS, open the menu (⋮) → **Custom repositories**, add `https://github.com/neilbrookins/ebac-ha-integration` as an **Integration**, then download **EBaC (Electronic Bible and Concordance)**.
+2. Press this button to open the integration in your Home Assistant's Marketplace (HACS before Home Assistant 2026.11), then download **EBaC (Electronic Bible and Concordance)**:
+
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=neilbrookins&repository=ebac-ha-integration&category=integration)
+
+   The first time, it asks for your Home Assistant's address. As EBaC isn't in Marketplace's own list yet, it is added as a custom repository, which Marketplace does only with Home Assistant connected to GitHub (it asks, once). If the button doesn't work for you, add it by hand: in Marketplace (or HACS), open the menu (⋮) → **Custom repositories** (or **Add by link**), add `https://github.com/neilbrookins/ebac-ha-integration` as an **Integration**.
 3. Restart Home Assistant.
 4. Under **Settings → Devices & services**, EBaC is shown as discovered: press **Add** and **Submit**. (If it isn't, press **Add integration**, choose EBaC, and keep the address filled in.)
 5. Choose the translation to read from (the King James Version is offered first), the language to add translations in (English unless you choose another), and what Assist may do beyond reading (see [What Assist may do](#what-assist-may-do)). Press **Submit**. You can change these later, under **Configure**.

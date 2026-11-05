@@ -1,12 +1,15 @@
-# A release on GitHub for each version tag (v0.6.2, say), with that
-# version's notes from CHANGELOG.md, so that Marketplace (HACS) shows the
-# version number and its "Read release announcement" opens the notes.
-# The tag must match the version in manifest.json.
+# A release on GitHub for the integration's version, with that version's
+# notes from CHANGELOG.md, so that Marketplace (HACS) shows the version
+# number and its "Read release announcement" opens the notes.
+#
+# Run it from the Actions tab: Release, then "Run workflow". It reads the
+# version from manifest.json (0.6.2, say), refuses if that version has a
+# release already or CHANGELOG.md has no section for it, and makes the
+# tag (v0.6.2) and the release, on the latest commit of main.
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -16,17 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: The tag matches manifest.json
+      - name: The version, and its notes from CHANGELOG.md
         run: |
-          v="${GITHUB_REF_NAME#v}"
-          m=$(python3 -c 'import json; print(json.load(open("custom_components/ebac/manifest.json"))["version"])')
-          [ "$v" = "$m" ] || { echo "tag $GITHUB_REF_NAME, but manifest.json says $m"; exit 1; }
-      - name: The notes from CHANGELOG.md
-        run: |
-          v="${GITHUB_REF_NAME#v}"
+          v=$(python3 -c 'import json; print(json.load(open("custom_components/ebac/manifest.json"))["version"])')
+          echo "version=$v" >> "$GITHUB_ENV"
           awk -v v="$v" '$0 == "## " v { on = 1; next } on && /^## / { exit } on { print }' CHANGELOG.md > notes.md
           [ -s notes.md ] || { echo "CHANGELOG.md has no section for $v"; exit 1; }
-      - name: The release
+      - name: The release (and its tag)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "${GITHUB_REF_NAME#v}" --notes-file notes.md
+        run: |
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "v$version has a release already: raise the version in manifest.json first"
+            exit 1
+          fi
+          gh release create "v$version" --target "$GITHUB_SHA" --title "$version" --notes-file notes.md

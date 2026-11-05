@@ -1,7 +1,7 @@
 # Changelog
 
 Each version's notes. A release on GitHub is made from its section here
-when its tag (v0.6.2, say) is pushed: see .github/workflows/release.yml.
+by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
 ## 0.6.2
 

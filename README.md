@@ -80,7 +80,18 @@ The same version of a translation already added isn't downloaded again: remove i
 
 ## Options
 
-Under **Settings → Devices & services → EBaC → Configure**: the translation to read from (any added in the EBaC app), how many verses "read on" reads, the language to add translations in, and the three checkboxes above.
+Under **Settings → Devices & services → EBaC → Configure**: the translation to read from (any added in the EBaC app), how many verses "read on" reads, the language to add translations in, the voice for "EBaC voice" (below), and the three checkboxes above.
+
+## EBaC voice
+
+Some words can't be read aloud as they are written. יהוה, the divine name with no vowel points, is read as "yo" by a Hebrew voice, and skipped or garbled by others. EBaC keeps a short list of such words and what to say for them (יהוה as "Adonai": the file `said` in EBaC).
+
+Assist shows the same text it speaks, so the words aren't changed in EBaC's answer: what you read stays as the text has it. Instead, the integration adds a voice, **EBaC voice**, which says the words on the list the other way and hands everything to a voice you already have:
+
+1. Under **Configure** (above), choose the voice it speaks with: Home Assistant Cloud, Piper, or another. If you choose none, Home Assistant Cloud's is used (else Piper's).
+2. Under **Settings → Voice assistants**, open a voice assistant and choose **EBaC voice** as its text-to-speech. Its language and voice there are the chosen voice's own, so pick them as before.
+
+Everything that voice assistant says goes through EBaC voice, but only the words on the list change; the rest sounds as before.
 
 ## How it works
 

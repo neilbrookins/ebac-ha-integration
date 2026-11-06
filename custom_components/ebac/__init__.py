@@ -10,7 +10,9 @@ At setup the integration
     load them again;
   - registers the intents those sentences name (intents.py), whose
     handlers keep each voice device's place, so "next verse" goes on
-    from the verse it last heard.
+    from the verse it last heard;
+  - asks for the words to say another way aloud, and sets up EBaC voice
+    (tts.py), which says them so on the way to another voice.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import issue_registry as ir
@@ -46,6 +49,8 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+PLATFORMS = [Platform.TTS]
 
 
 @dataclass
@@ -74,6 +79,9 @@ class EbacData:
     pending: dict[str, dict] = field(default_factory=dict)
     # ebac-admin's catalog, kept a few minutes: (time, catalog)
     catalog: tuple[float, dict] | None = None
+    # words to say another way aloud, for EBaC voice (tts.py): [{"word":
+    # "יהוה", "say": "Adonai"}], asked for again with the regular check
+    said: list[dict[str, str]] = field(default_factory=list)
 
 
 class Places:
@@ -115,6 +123,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         books = await api.books(translation)
         numbers = await api.numbers(translation)
         translations = await api.translations()
+        said = await api.said()
         # The sentences know the books of every translation installed, not
         # only of the one in use: so "John 3:16" said while reading the
         # Hebrew Bible (no New Testament) is understood, and answered that
@@ -154,6 +163,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         allow_add=allow_add,
         allow_remove=allow_add and bool(options.get(CONF_ALLOW_REMOVE, False)),
         language=options.get(CONF_LANGUAGE) or DEFAULT_LANGUAGE,
+        said=said,
     )
     hass.data[DOMAIN] = entry.runtime_data
 
@@ -171,12 +181,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
     if changed:
         await _reload_assist(hass)
 
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_options_changed))
 
     async def check(_now: Any) -> None:
         """Does EBaC still answer? (removed, the repair: reachable.py)"""
         try:
             await api.translations()
+            entry.runtime_data.said = await api.said()
         except EbacUnreachable:
             await reachable.async_unanswered(hass, entry.data[CONF_URL])
         except EbacError:
@@ -189,7 +201,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool:
-    """Unload EBaC: its intents (its sentence file stays, for the restart)."""
+    """Unload EBaC: its voice and intents (its sentence file stays, for the
+    restart)."""
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
     ebac_intents.async_remove(hass)
     await entry.runtime_data.places.async_save()
     hass.data.pop(DOMAIN, None)
@@ -205,8 +220,8 @@ async def async_remove_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> Non
 
 
 async def _options_changed(hass: HomeAssistant, entry: EbacConfigEntry) -> None:
-    """Another translation, or how much "read on" reads: set up again (the
-    books' names may differ)."""
+    """Another translation, how much "read on" reads, or the voice EBaC
+    voice speaks with: set up again (the books' names may differ)."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 

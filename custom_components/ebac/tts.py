@@ -1,0 +1,149 @@
+"""EBaC voice: words said another way, on the way to another voice.
+
+A voice can't read some words as they are written: "יהוה", the divine
+name with no vowel points, was read as "yo". EBaC's file "said" lists such
+words and what to say for them ("יהוה = Adonai"). Assist shows the same
+text it speaks, so they can't be changed in the answer: shown, "Adonai"
+would claim letters the text doesn't have. So this is a voice of its own,
+chosen in an Assist voice setup (Settings > Voice assistants): it puts the
+words in place (whole words only) and hands the text to the voice set in
+EBaC's options (Home Assistant Cloud, Piper), with the language and voice
+the voice setup chose, which are that voice's own. Everything else it is
+given, it passes on unchanged.
+
+See "Words said another way" in EBaC's readme.architecture.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from collections.abc import Mapping
+from typing import Any
+
+from homeassistant.components import tts
+from homeassistant.components.tts import (
+    TextToSpeechEntity,
+    TtsAudioType,
+    Voice,
+    get_engine_instance,
+)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+from .const import CONF_SPEAK_WITH, DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+ENTITY_ID = "tts.ebac_voice"
+# The voice used when EBaC's options name none: the first of these there is
+PREFERRED = ("tts.home_assistant_cloud", "tts.piper")
+
+
+def speak_with(hass: HomeAssistant, options: Mapping[str, Any]) -> str | None:
+    """The voice EBaC voice hands its text to: the one in the options, else
+    Home Assistant Cloud's or Piper's, else any other there is."""
+    chosen = options.get(CONF_SPEAK_WITH)
+    if chosen and chosen != ENTITY_ID:
+        return chosen
+    for engine in PREFERRED:
+        if hass.states.get(engine) is not None:
+            return engine
+    for state in hass.states.async_all("tts"):
+        if state.entity_id != ENTITY_ID:
+            return state.entity_id
+    return None
+
+
+def say_words(text: str, said: list[dict[str, str]]) -> str:
+    """The text with each listed word (a whole word: no letter, number or
+    mark just before or after it) said the listed way."""
+    for item in said:
+        word, say = item.get("word") or "", item.get("say") or ""
+        if word and say:
+            text = re.sub(
+                rf"(?<![\w֐-׿]){re.escape(word)}(?![\w֐-׿])",
+                lambda _m, say=say: say,
+                text,
+            )
+    return text
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: Any, async_add_entities: AddConfigEntryEntitiesCallback
+) -> None:
+    """EBaC voice."""
+    async_add_entities([EbacVoice(hass, entry)])
+
+
+class EbacVoice(TextToSpeechEntity):
+    """Another voice, with EBaC's words said another way."""
+
+    _attr_has_entity_name = False
+    _attr_name = "EBaC voice"
+    _attr_icon = "mdi:book-open-variant"
+
+    def __init__(self, hass: HomeAssistant, entry: Any) -> None:
+        self._entry = entry
+        self._attr_unique_id = f"{DOMAIN}_voice"
+        self.entity_id = ENTITY_ID
+
+    def _engine(self) -> tuple[str | None, Any]:
+        """The voice handed to, and its engine (None if not there yet)."""
+        engine = speak_with(self.hass, self._entry.options)
+        if engine is None:
+            return None, None
+        return engine, get_engine_instance(self.hass, engine)
+
+    @property
+    def available(self) -> bool:
+        return self._engine()[1] is not None
+
+    @property
+    def supported_languages(self) -> list[str]:  # type: ignore[override]
+        instance = self._engine()[1]
+        return list(instance.supported_languages or []) if instance else ["en-US"]
+
+    @property
+    def default_language(self) -> str:  # type: ignore[override]
+        instance = self._engine()[1]
+        return instance.default_language if instance else "en-US"
+
+    @property
+    def supported_options(self) -> list[str] | None:  # type: ignore[override]
+        instance = self._engine()[1]
+        return list(instance.supported_options or []) if instance else None
+
+    @property
+    def default_options(self) -> Mapping[str, Any] | None:  # type: ignore[override]
+        instance = self._engine()[1]
+        return instance.default_options if instance else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"speaks_with": self._engine()[0]}
+
+    @callback
+    def async_get_supported_voices(self, language: str) -> list[Voice] | None:
+        instance = self._engine()[1]
+        if instance is None or not hasattr(instance, "async_get_supported_voices"):
+            return None
+        return instance.async_get_supported_voices(language)
+
+    async def async_get_tts_audio(
+        self, message: str, language: str, options: dict[str, Any]
+    ) -> TtsAudioType:
+        """The other voice's audio of the message, with the words in place."""
+        engine, instance = self._engine()
+        if instance is None:
+            raise HomeAssistantError("EBaC voice: the voice it speaks with isn't there")
+        data = self.hass.data.get(DOMAIN)
+        said = data.said if data is not None else []
+        spoken = say_words(message, said)
+        if spoken != message:
+            _LOGGER.debug("EBaC voice: %r said as %r", message, spoken)
+        stream = tts.async_create_stream(self.hass, engine, language, options)
+        stream.async_set_message(spoken)
+        audio = b"".join([chunk async for chunk in stream.async_stream_result()])
+        return stream.extension, audio

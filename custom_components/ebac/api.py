@@ -2,8 +2,8 @@
 
 ebac-api is a CGI program: http://HOST:8080/cgi-bin/ebac/REQUEST?PARAMS.
 Its requests are described in EBaC's readme.architecture, under "Voice":
-translations, books, numbers, parse, verse, next, previous, search, info
-and license. An error is HTTP 400 with {"error": "..."}.
+translations, books, numbers, parse, verse, next, previous, search, info,
+said and license. An error is HTTP 400 with {"error": "..."}.
 
 Beside it, ebac-admin (http://HOST:8080/cgi-bin/ebac-admin/REQUEST)
 adds and removes translations, only as the EBaC app's options allow:
@@ -73,6 +73,16 @@ class EbacApi:
     async def translations(self) -> list[dict[str, str]]:
         """The translations: [{"name": "AV", "title": "..."}]."""
         return (await self.request("translations"))["translations"]
+
+    async def said(self) -> list[dict[str, str]]:
+        """Words to say another way aloud: [{"word": "יהוה", "say":
+        "Adonai"}] (none from an EBaC older than the request)."""
+        try:
+            return (await self.request("said"))["said"]
+        except (EbacError, KeyError) as err:
+            if isinstance(err, EbacUnreachable):
+                raise
+            return []
 
     async def books(self, translation: str | None) -> list[dict[str, Any]]:
         """A translation's books, with their spoken forms."""

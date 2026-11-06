@@ -3,6 +3,12 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.7.0
+
+### Added
+
+- **EBaC voice.** A text-to-speech voice that says some words another way and hands the text to a voice you already have (Home Assistant Cloud, Piper): יהוה, the divine name with no vowel points, is said as "Adonai" (a Hebrew voice read it as "yo"). Assist still shows the words as the text has them. Choose the voice it speaks with under **Configure**, and choose **EBaC voice** in a voice assistant (**Settings → Voice assistants**). Needs the EBaC app 2.12.11 or later for its list of words. README: "EBaC voice".
+
 ## 0.6.3
 
 ### Changed

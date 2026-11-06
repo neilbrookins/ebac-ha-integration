@@ -18,6 +18,10 @@ CONF_ALLOW_REMOVE = "allow_remove"  # remove translations (needs add)
 # The language group: the language "add translation X" looks in (a code,
 # as the EBaC app's list of translations has them: en, es, grc)
 CONF_LANGUAGE = "language"
+# The voice EBaC voice (tts.py) hands its text to, with EBaC's words said
+# another way: a text-to-speech entity ("tts.home_assistant_cloud"); none
+# set, Home Assistant Cloud's or Piper's
+CONF_SPEAK_WITH = "speak_with"
 DEFAULT_LANGUAGE = "en"
 DEFAULT_READ_ON = 5
 MAX_READ_ON = 20

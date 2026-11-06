@@ -22,6 +22,8 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -36,12 +38,15 @@ from homeassistant.helpers.selector import (
 from homeassistant.helpers.service_info.hassio import HassioServiceInfo
 
 from .api import EbacApi, EbacError
+from .tts import ENTITY_ID as VOICE_ENTITY_ID
+from .tts import speak_with
 from .const import (
     CONF_ALLOW_ADD,
     CONF_ALLOW_CHANGE,
     CONF_ALLOW_REMOVE,
     CONF_LANGUAGE,
     CONF_READ_ON,
+    CONF_SPEAK_WITH,
     CONF_TRANSLATION,
     CONF_URL,
     DEFAULT_LANGUAGE,
@@ -249,8 +254,8 @@ class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class EbacOptionsFlow(OptionsFlow):
     """The translation to read from, how much "read on" reads, the
-    language translations are added in, and what Assist may do beyond
-    reading."""
+    language translations are added in, the voice EBaC voice speaks with,
+    and what Assist may do beyond reading."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -291,6 +296,16 @@ class EbacOptionsFlow(OptionsFlow):
                     vol.Required(
                         CONF_LANGUAGE, default=options.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
                     ): await language_selector(api),
+                    vol.Optional(
+                        CONF_SPEAK_WITH,
+                        description={
+                            "suggested_value": speak_with(self.hass, options)
+                        },
+                    ): EntitySelector(
+                        EntitySelectorConfig(
+                            domain="tts", exclude_entities=[VOICE_ENTITY_ID]
+                        )
+                    ),
                     **permission_fields(options),
                 }
             ),

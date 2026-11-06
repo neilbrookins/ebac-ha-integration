@@ -6,7 +6,8 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "conversation"
+    "conversation",
+    "tts"
   ],
   "documentation": "https://github.com/neilbrookins/ebac-ha-integration",
   "integration_type": "service",
@@ -14,5 +15,5 @@
   "issue_tracker": "https://github.com/neilbrookins/ebac-ha-integration/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.6.3"
+  "version": "0.7.0"
 }

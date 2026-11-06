@@ -6,7 +6,8 @@ words and what to say for them ("יהוה = Adonai"). Assist shows the same
 text it speaks, so they can't be changed in the answer: shown, "Adonai"
 would claim letters the text doesn't have. So this is a voice of its own,
 chosen in an Assist voice setup (Settings > Voice assistants): it puts the
-words in place (whole words only) and hands the text to the voice set in
+words in place (whole words, compared without the chant marks of the
+Hebrew text) and hands the text to the voice set in
 EBaC's options (Home Assistant Cloud, Piper), with the language and voice
 the voice setup chose, which are that voice's own. Everything else it is
 given, it passes on unchanged.
@@ -18,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+import unicodedata
 from collections.abc import Mapping
 from typing import Any
 
@@ -55,18 +57,34 @@ def speak_with(hass: HomeAssistant, options: Mapping[str, Any]) -> str | None:
     return None
 
 
+# A word: letters, numbers, and the marks on Hebrew letters (vowel points,
+# chant marks), but not the Hebrew punctuation that joins or ends words
+# (maqaf "־", paseq "׀", sof pasuq "׃")
+_WORD = re.compile(r"[\w\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u034F]+")
+# Left out when words are compared: the chant marks (cantillation) and
+# meteg, which the Westminster Leningrad Codex sets in among the letters,
+# so that "יְהוָה" is written some 500 ways; and the grapheme joiner it
+# uses to keep a mark's place
+_IGNORED = re.compile(r"[\u0591-\u05AF\u05BD\u034F]")
+
+
+def _key(word: str) -> str:
+    """A word as compared: without the marks ignored, its marks in one
+    order (the same points may be stored in another order)."""
+    return unicodedata.normalize("NFC", _IGNORED.sub("", word))
+
+
 def say_words(text: str, said: list[dict[str, str]]) -> str:
-    """The text with each listed word (a whole word: no letter, number or
-    mark just before or after it) said the listed way."""
-    for item in said:
-        word, say = item.get("word") or "", item.get("say") or ""
-        if word and say:
-            text = re.sub(
-                rf"(?<![\w֐-׿]){re.escape(word)}(?![\w֐-׿])",
-                lambda _m, say=say: say,
-                text,
-            )
-    return text
+    """The text with each listed word (a whole word, compared without chant
+    marks) said the listed way."""
+    table = {
+        _key(item["word"]): item["say"]
+        for item in said
+        if item.get("word") and item.get("say")
+    }
+    if not table:
+        return text
+    return _WORD.sub(lambda m: table.get(_key(m.group()), m.group()), text)
 
 
 async def async_setup_entry(

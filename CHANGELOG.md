@@ -3,6 +3,12 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.7.2
+
+### Changed
+
+- **EBaC voice compares words without the Hebrew chant marks** (cantillation and meteg), and whatever order a word's marks are stored in. The Westminster Leningrad Codex sets them inside its words, writing the divine name some 500 ways; with the EBaC app 2.12.12's list, all of them are said as tradition reads them (אֲדֹנָי, or אֱלֹהִים), by a Hebrew voice.
+
 ## 0.7.1
 
 ### Fixed

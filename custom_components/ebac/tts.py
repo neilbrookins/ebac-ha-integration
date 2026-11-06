@@ -21,7 +21,6 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from homeassistant.components import tts
 from homeassistant.components.tts import (
     TextToSpeechEntity,
     TtsAudioType,
@@ -135,7 +134,7 @@ class EbacVoice(TextToSpeechEntity):
         self, message: str, language: str, options: dict[str, Any]
     ) -> TtsAudioType:
         """The other voice's audio of the message, with the words in place."""
-        engine, instance = self._engine()
+        instance = self._engine()[1]
         if instance is None:
             raise HomeAssistantError("EBaC voice: the voice it speaks with isn't there")
         data = self.hass.data.get(DOMAIN)
@@ -143,7 +142,11 @@ class EbacVoice(TextToSpeechEntity):
         spoken = say_words(message, said)
         if spoken != message:
             _LOGGER.debug("EBaC voice: %r said as %r", message, spoken)
-        stream = tts.async_create_stream(self.hass, engine, language, options)
-        stream.async_set_message(spoken)
-        audio = b"".join([chunk async for chunk in stream.async_stream_result()])
-        return stream.extension, audio
+        # The whole recording, from the other voice itself, as Home Assistant
+        # asks a voice that doesn't stream: its streamed audio (a WAV
+        # header, then the sound as it comes), handed on whole, couldn't be
+        # played ("# channels not specified"). The options were checked
+        # against that voice's already (they are its own: above), with its
+        # defaults (Home Assistant Cloud's needs its audio_output).
+        options = {**(instance.default_options or {}), **options}
+        return await instance.async_internal_get_tts_audio(spoken, language, options)

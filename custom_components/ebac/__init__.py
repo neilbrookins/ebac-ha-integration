@@ -116,7 +116,37 @@ type EbacConfigEntry = ConfigEntry[EbacData]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool:
-    """Set up EBaC: the sentences, the intents."""
+    """Set up EBaC: the sentences, the intents, EBaC voice."""
+    try:
+        await _async_set_up_reading(hass, entry)
+    except EbacError as err:
+        raise ConfigEntryNotReady(str(err)) from err
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_options_changed))
+
+    async def check(_now: Any) -> None:
+        """Does EBaC still answer? (removed, the repair: reachable.py)"""
+        data = entry.runtime_data
+        try:
+            await data.api.translations()
+            data.said = await data.api.said()
+        except EbacUnreachable:
+            await reachable.async_unanswered(hass, entry.data[CONF_URL])
+        except EbacError:
+            pass  # (it answered: wrongly, but it's there)
+        else:
+            await reachable.async_answered(hass)
+
+    entry.async_on_unload(async_track_time_interval(hass, check, reachable.CHECK_EVERY))
+    return True
+
+
+async def _async_set_up_reading(hass: HomeAssistant, entry: EbacConfigEntry) -> None:
+    """What reading needs, from the options and EBaC's answers: the books,
+    the sentences, the intents, the words said another way. Done again
+    when the options change (another translation), without EBaC voice
+    going away: it may be speaking the answer to that very change."""
     api = EbacApi(async_get_clientsession(hass), entry.data[CONF_URL])
     translation = entry.options.get(CONF_TRANSLATION) or None
     try:
@@ -141,7 +171,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         if isinstance(err, EbacUnreachable):
             # (removed? after a while, a repair says so: reachable.py)
             await reachable.async_unanswered(hass, entry.data[CONF_URL])
-        raise ConfigEntryNotReady(str(err)) from err
+        raise
     await reachable.async_answered(hass)
     in_use = translation or (translations[0]["name"] if translations else "")
     title = next((t["title"] for t in translations if t["name"] == in_use), in_use)
@@ -181,24 +211,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
     if changed:
         await _reload_assist(hass)
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(_options_changed))
-
-    async def check(_now: Any) -> None:
-        """Does EBaC still answer? (removed, the repair: reachable.py)"""
-        try:
-            await api.translations()
-            entry.runtime_data.said = await api.said()
-        except EbacUnreachable:
-            await reachable.async_unanswered(hass, entry.data[CONF_URL])
-        except EbacError:
-            pass  # (it answered: wrongly, but it's there)
-        else:
-            await reachable.async_answered(hass)
-
-    entry.async_on_unload(async_track_time_interval(hass, check, reachable.CHECK_EVERY))
-    return True
-
 
 async def async_unload_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool:
     """Unload EBaC: its voice and intents (its sentence file stays, for the
@@ -221,8 +233,18 @@ async def async_remove_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> Non
 
 async def _options_changed(hass: HomeAssistant, entry: EbacConfigEntry) -> None:
     """Another translation, how much "read on" reads, or the voice EBaC
-    voice speaks with: set up again (the books' names may differ)."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    voice speaks with: reading set up again (the books' names may differ).
+    EBaC voice stays: it reads its voice from the options each time, and
+    an answer ("Now reading from ...") may be on its way through it. If
+    EBaC can't answer just now, everything is set up again, and retried
+    as at a start."""
+    # (the intents stay registered, and are registered again: no moment
+    # without them)
+    await entry.runtime_data.places.async_save()
+    try:
+        await _async_set_up_reading(hass, entry)
+    except EbacError:
+        await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def _reload_assist(hass: HomeAssistant) -> None:

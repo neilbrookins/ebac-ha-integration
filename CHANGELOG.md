@@ -3,6 +3,13 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.7.1
+
+### Fixed
+
+- **EBaC voice went silent** after its first answer, with "# channels not specified" in the log: it now asks the voice it speaks with for a whole recording, rather than handing on streamed audio.
+- **No answer was spoken after "change translation"** through EBaC voice: changing the translation (or another option) set the whole integration up again, and EBaC voice was gone for a moment, just as the answer was being spoken. Now only reading is set up again; EBaC voice stays.
+
 ## 0.7.0
 
 ### Added

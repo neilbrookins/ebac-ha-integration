@@ -46,14 +46,17 @@ from .const import (
     CONF_ALLOW_REMOVE,
     CONF_LANGUAGE,
     CONF_READ_ON,
+    CONF_SOURCE,
     CONF_SPEAK_WITH,
     CONF_TRANSLATION,
     CONF_URL,
     DEFAULT_LANGUAGE,
     DEFAULT_READ_ON,
+    DEFAULT_SOURCE,
     DEFAULT_URL,
     DOMAIN,
     MAX_READ_ON,
+    SOURCES,
 )
 
 TITLE = "EBaC"
@@ -94,6 +97,19 @@ async def language_selector(api: EbacApi) -> SelectSelector:
     return SelectSelector(
         SelectSelectorConfig(
             options=options, mode=SelectSelectorMode.DROPDOWN, custom_value=True
+        )
+    )
+
+
+def source_selector() -> SelectSelector:
+    """Where "add translation" looks: the three sources (const.SOURCES)."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(value=key, label=source["label"])
+                for key, source in SOURCES.items()
+            ],
+            mode=SelectSelectorMode.DROPDOWN,
         )
     )
 
@@ -163,6 +179,7 @@ class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
                     options={
                         CONF_TRANSLATION: user_input[CONF_TRANSLATION],
                         CONF_READ_ON: DEFAULT_READ_ON,
+                        CONF_SOURCE: user_input.get(CONF_SOURCE) or DEFAULT_SOURCE,
                         CONF_LANGUAGE: user_input.get(CONF_LANGUAGE) or DEFAULT_LANGUAGE,
                         CONF_ALLOW_CHANGE: user_input[CONF_ALLOW_CHANGE],
                         CONF_ALLOW_ADD: user_input[CONF_ALLOW_ADD],
@@ -181,6 +198,9 @@ class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_TRANSLATION, default=given.get(CONF_TRANSLATION, default)
                     ): translation_selector(self._translations),
+                    vol.Required(
+                        CONF_SOURCE, default=given.get(CONF_SOURCE, DEFAULT_SOURCE)
+                    ): source_selector(),
                     vol.Required(
                         CONF_LANGUAGE, default=given.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
                     ): await language_selector(api),
@@ -293,6 +313,9 @@ class EbacOptionsFlow(OptionsFlow):
                             min=1, max=MAX_READ_ON, step=1, mode=NumberSelectorMode.BOX
                         )
                     ),
+                    vol.Required(
+                        CONF_SOURCE, default=options.get(CONF_SOURCE, DEFAULT_SOURCE)
+                    ): source_selector(),
                     vol.Required(
                         CONF_LANGUAGE, default=options.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
                     ): await language_selector(api),

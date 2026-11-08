@@ -225,6 +225,9 @@ OTHER_SENTENCES = {
         "(use|switch to|choose|select) {ebac_language:language} translations",
         "manipulate translations {ebac_language:language}",
         "manipulate {ebac_language:language} translations",
+        # (the source, too: a source's name is tried first, then a language)
+        "(use|get) translations from {ebac_language:language}",
+        "(use|choose|select|switch to) [the] source {ebac_language:language}",
     ],
     INTENT_LIST_LANGUAGES: [
         "(which|what) languages (are there|can i (add|choose|use)|have translations)",

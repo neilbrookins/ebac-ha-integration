@@ -14,7 +14,7 @@ This integration needs the **EBaC app** ([github.com/neilbrookins/ebac-ha-app](h
    The first time, it asks for your Home Assistant's address. As EBaC isn't in Marketplace's own list yet, it is added as a custom repository, which Marketplace does only with Home Assistant connected to GitHub (it asks, once). If the button doesn't work for you, add it by hand: in Marketplace (or HACS), open the menu (⋮) → **Custom repositories** (or **Add by link**), add `https://github.com/neilbrookins/ebac-ha-integration` as an **Integration**.
 3. With HACS (Home Assistant before 2026.11), restart Home Assistant. With Marketplace (2026.11 and later), a new integration needs no restart: go on to step 4. (Updating it later does still need a restart, either way.)
 4. Under **Settings → Devices & services**, EBaC is shown as discovered: press **Add** and **Submit**. (If it isn't, press **Add integration**, choose EBaC, and keep the address filled in.)
-5. Choose the translation to read from (the King James Version is offered first), the language to add translations in (English unless you choose another), and what Assist may do beyond reading (see [What Assist may do](#what-assist-may-do)). Press **Submit**. You can change these later, under **Configure**.
+5. Choose the translation to read from (the King James Version is offered first), where to add translations from and the language to add them in (scrollmapper's collection and English unless you choose others), and what Assist may do beyond reading (see [What Assist may do](#what-assist-may-do)). Press **Submit**. You can change these later, under **Configure**.
 
 ## What to say
 
@@ -42,6 +42,7 @@ This integration needs the **EBaC app** ([github.com/neilbrookins/ebac-ha-app](h
 | "what's the license of this translation?" | the license agreed to when it was added |
 | "what version of EBaC is this?" | EBaC's version, and where to get help |
 | "use Spanish translations", "manipulate translations Spanish" | the language "add translation" looks in, from now on (if adding is allowed) |
+| "use Gutenberg translations", "use translations from Thiago Bodruk", "use scrollmapper translations" | the source "add translation" looks in, from now on (if adding is allowed) |
 | "which languages are there?", "what translations are there (in Spanish)?" | what can be added, ten at a time: "more languages", "more translations" |
 | "add translation LITV", "add the Lexham translation" | its license, then "do you agree?": "yes" adds it (if allowed) |
 | "remove translation LITV" | "are you sure?": "yes" removes it (if allowed) |
@@ -70,7 +71,9 @@ With changing off, Assist reads only the translation chosen under **Configure**,
 
 ### Adding and removing by voice
 
-Adding is one step when the language is already the one you want: "add translation LITV" looks only in that language (English unless chosen otherwise; "use Spanish translations" changes it, for the whole house). A name that fits several translations gets them listed.
+Adding is one step when the source and language are already the ones you want: "add translation LITV" looks only there (scrollmapper's collection, in English, unless chosen otherwise; "use Gutenberg translations" and "use Spanish translations" change them, for the whole house, and they stay until changed again). So adding several from the same place is just "add translation NIV", then "add translation NLT".
+
+The three sources: **thiagobodruk/bible** on GitHub (names end in -TB: say just "NIV" for NIV-TB), **scrollmapper's bible_databases** on GitHub, and **Project Gutenberg**, by ebook number ("add translation 8294") or name ("add translation DRC"): only the texts EBaC knows how to read (17, the Book of Mormon; 1581, Douay-Rheims; 8294, the World English Bible; 16955, the Qur'an in three translations). Removing needs no source: each translation is removed by the importer that added it. A name that fits several translations gets them listed.
 
 1. Assist reads the translation's license and asks whether you agree.
 2. Answer "yes" or "no". On a voice speaker, say the wake word first, as for any command: Assist doesn't keep listening after a question when it answers with its own sentences (Home Assistant, as of October 2026). The question waits five minutes, for the same speaker or phone.
@@ -80,7 +83,7 @@ The same version of a translation already added isn't downloaded again: remove i
 
 ## Options
 
-Under **Settings → Devices & services → EBaC → Configure**: the translation to read from (any added in the EBaC app), how many verses "read on" reads, the language to add translations in, the voice for "EBaC voice" (below), and the three checkboxes above.
+Under **Settings → Devices & services → EBaC → Configure**: the translation to read from (any added in the EBaC app), how many verses "read on" reads, where to add translations from and the language to add them in, the voice for "EBaC voice" (below), and the three checkboxes above.
 
 ## EBaC voice
 

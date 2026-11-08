@@ -18,6 +18,41 @@ CONF_ALLOW_REMOVE = "allow_remove"  # remove translations (needs add)
 # The language group: the language "add translation X" looks in (a code,
 # as the EBaC app's list of translations has them: en, es, grc)
 CONF_LANGUAGE = "language"
+# Where "add translation" looks (with the language): one of SOURCES, for
+# the whole house; set in Configure, or by voice ("use Gutenberg
+# translations"). ebac-admin's source= (EBaC's readme.architecture,
+# "Sources by voice").
+CONF_SOURCE = "source"
+DEFAULT_SOURCE = "scrollmapper"
+# Each source: how it is named in Configure and said, its short names'
+# suffix (implied when a name is said: "NIV" is NIV-TB), where its
+# licenses' details are, and the words that name it by voice
+SOURCES: dict[str, dict] = {
+    "thiagobodruk": {
+        "label": "thiagobodruk/bible on GitHub (names end in -TB)",
+        "spoken": "thiagobodruk/bible",
+        "suffix": "-TB",
+        "details": "on the source's page about its licenses",
+        "said": ["thiagobodruk", "thiago bodruk", "thiago", "bodruk", "tb",
+                 "thiago bodruk bible", "thiagobodruk bible"],
+    },
+    "scrollmapper": {
+        "label": "scrollmapper's bible_databases on GitHub",
+        "spoken": "scrollmapper's bible databases",
+        "suffix": "",
+        "details": "on CrossWire's page for it",
+        "said": ["scrollmapper", "scroll mapper", "scrollmaster", "scroll master",
+                 "bible databases", "crosswire"],
+    },
+    "gutenberg": {
+        "label": "Project Gutenberg (by ebook number; names end in -PG)",
+        "spoken": "Project Gutenberg",
+        "suffix": "-PG",
+        "details": "on its page at Project Gutenberg",
+        "said": ["gutenberg", "project gutenberg", "guttenberg", "project guttenberg", "pg"],
+    },
+}
+
 # The voice EBaC voice (tts.py) hands its text to, with EBaC's words said
 # another way: a text-to-speech entity ("tts.home_assistant_cloud"); none
 # set, Home Assistant Cloud's or Piper's

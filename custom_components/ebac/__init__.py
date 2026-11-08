@@ -39,11 +39,14 @@ from .const import (
     CONF_ALLOW_REMOVE,
     CONF_LANGUAGE,
     CONF_READ_ON,
+    CONF_SOURCE,
     CONF_TRANSLATION,
     CONF_URL,
     DEFAULT_LANGUAGE,
     DEFAULT_READ_ON,
+    DEFAULT_SOURCE,
     DOMAIN,
+    SOURCES,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -74,11 +77,13 @@ class EbacData:
     allow_add: bool = False
     allow_remove: bool = False
     language: str = DEFAULT_LANGUAGE
+    # and the source it looks in (one of SOURCES)
+    source: str = DEFAULT_SOURCE
     # questions waiting for a yes, by place key: {"action": "add" or
-    # "remove", "name", "title", "until": time}
+    # "remove", "name", "title", "source" (adding), "until": time}
     pending: dict[str, dict] = field(default_factory=dict)
-    # ebac-admin's catalog, kept a few minutes: (time, catalog)
-    catalog: tuple[float, dict] | None = None
+    # ebac-admin's catalogs, kept a few minutes: {source: (time, catalog)}
+    catalog: dict[str, tuple[float, dict]] = field(default_factory=dict)
     # words to say another way aloud, for EBaC voice (tts.py): [{"word":
     # "יהוה", "say": "Adonai"}], asked for again with the regular check
     said: list[dict[str, str]] = field(default_factory=list)
@@ -193,6 +198,7 @@ async def _async_set_up_reading(hass: HomeAssistant, entry: EbacConfigEntry) -> 
         allow_add=allow_add,
         allow_remove=allow_add and bool(options.get(CONF_ALLOW_REMOVE, False)),
         language=options.get(CONF_LANGUAGE) or DEFAULT_LANGUAGE,
+        source=options.get(CONF_SOURCE) if options.get(CONF_SOURCE) in SOURCES else DEFAULT_SOURCE,
         said=said,
     )
     hass.data[DOMAIN] = entry.runtime_data

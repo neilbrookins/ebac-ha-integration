@@ -24,6 +24,8 @@ from . import adding
 from .api import EbacError
 from .const import (
     CONF_LANGUAGE,
+    CONF_SOURCE,
+    SOURCES,
     CONFIRM_SECONDS,
     ITEMS_PER_LIST,
     INTENT_USE_LANGUAGE,
@@ -447,20 +449,48 @@ def words_of(text: str) -> list[str]:
 
 
 def spoken_title(translation: dict[str, str]) -> str:
-    """A translation, as said: its title and short name."""
+    """A translation, as said: its title and short name (a Project Gutenberg
+    ebook, in ebac-admin's catalog: its short names and number)."""
+    if translation.get("names"):
+        return f"{translation['title']} ({translation['names']}, ebook {translation['name']})"
     return f"{translation['title']} ({translation['name']})"
 
 
+# The endings of other sources' short names (KJVA-TB, DRC-PG), implied when
+# a name is said without them (const.SOURCES)
+SUFFIXES = tuple(s["suffix"].lower() for s in SOURCES.values() if s["suffix"])
+
+
+def name_keys(translation: dict[str, str], without_suffix: bool) -> set[str]:
+    """A translation's short names as said: letters and digits only ("K J V
+    A T B" is KJVA-TB); with without_suffix, without their source's ending
+    (NIV for NIV-TB). A Project Gutenberg ebook's are its number (8294) and
+    its texts' names (WEB-PG)."""
+    names = [translation["name"], *translation.get("names", "").split()]
+    keys = set()
+    for name in names:
+        name = name.lower()
+        if without_suffix:
+            for suffix in SUFFIXES:
+                if name.endswith(suffix):
+                    name = name[: -len(suffix)]
+        keys.add("".join(words_of(name)))
+    return keys
+
+
 def match_translations(said: str, translations: list[dict]) -> list[dict]:
-    """The translations installed that the words said name (see "Changing
-    the translation by voice" in EBaC's readme.architecture): the short
-    name, ignoring case, spaces and dots ("K J V A"); else those whose
-    title has every word said ("King James"), the one whose title is just
-    those words, if there is one."""
+    """The translations that the words said name (see "Changing the
+    translation by voice" in EBaC's readme.architecture): the short name,
+    ignoring case, spaces, dots and dashes ("K J V A"); else the short name
+    without its source's ending ("NIV" for NIV-TB: those of the source
+    looked in, or any added); else those whose title has every word said
+    ("King James"), the one whose title is just those words, if there is
+    one."""
     letters = "".join(words_of(said))
-    by_name = [t for t in translations if t["name"].lower() == letters]
-    if by_name:
-        return by_name
+    for without_suffix in (False, True):
+        by_name = [t for t in translations if letters in name_keys(t, without_suffix)]
+        if by_name:
+            return by_name
     said_words = [w for w in words_of(said) if w not in ("the", "translation")]
     if not said_words:
         return []
@@ -691,13 +721,31 @@ class LicenseHandler(EbacHandler):
 CATALOG_SECONDS = 600  # how long the catalog is kept
 
 
-async def catalog(data: EbacData) -> dict[str, Any]:
-    """ebac-admin's catalog (kept a few minutes: it downloads the list)."""
-    if data.catalog and time.monotonic() - data.catalog[0] < CATALOG_SECONDS:
-        return data.catalog[1]
-    found = await data.api.catalog()
-    data.catalog = (time.monotonic(), found)
+async def catalog(data: EbacData, source: str | None = None) -> dict[str, Any]:
+    """ebac-admin's catalog of a source (the one looked in, if none said),
+    kept a few minutes: it downloads the list."""
+    source = source or data.source
+    kept = data.catalog.get(source)
+    if kept and time.monotonic() - kept[0] < CATALOG_SECONDS:
+        return kept[1]
+    found = await data.api.catalog(source)
+    data.catalog[source] = (time.monotonic(), found)
     return found
+
+
+def source_named(said: str) -> str | None:
+    """The source the words said name ("Gutenberg", "Thiago Bodruk",
+    "scrollmapper"), as const.SOURCES has them; else None."""
+    letters = "".join(words_of(said))
+    for key, source in SOURCES.items():
+        if letters in {"".join(words_of(name)) for name in source["said"]}:
+            return key
+    return None
+
+
+def source_spoken(key: str) -> str:
+    """A source, as said."""
+    return SOURCES.get(key, {}).get("spoken", key)
 
 
 def language_name(language: dict[str, Any]) -> str:
@@ -767,7 +815,9 @@ def set_option(intent_obj: intent.Intent, **changes: Any) -> bool:
 
 class UseLanguageHandler(EbacHandler):
     """ "Use Spanish translations", "manipulate translations Spanish": the
-    language "add translation" looks in, from now on (the whole house)."""
+    language "add translation" looks in, from now on (the whole house). And
+    "use Gutenberg translations", "use translations from Thiago Bodruk":
+    the source it looks in (a source's name is tried first)."""
 
     slot_schema = {vol.Required("language"): cv.string}
 
@@ -775,6 +825,9 @@ class UseLanguageHandler(EbacHandler):
         if not data.allow_add:
             return not_allowed("Adding translations")
         said = self.async_validate_slots(intent_obj.slots)["language"]["value"].strip(" .?!")
+        source = source_named(said)
+        if source is not None:
+            return await self.use_source(intent_obj, data, source)
         languages = (await catalog(data))["languages"]
         found = match_languages(said, languages)
         if not found:
@@ -789,8 +842,30 @@ class UseLanguageHandler(EbacHandler):
         count = language.get("count", 0)
         return (
             f"Translations in {language_name(language)} from now on: "
-            f"{count} translation{'s' if count != 1 else ''}. "
+            f"{count} translation{'s' if count != 1 else ''} from {source_spoken(data.source)}. "
             'Say "what translations are there?" to hear them.'
+        )
+
+    async def use_source(self, intent_obj, data, source):
+        """The source "add translation" looks in, from now on; and how many
+        it has in the language looked in."""
+        if source == data.source:
+            return f"Already adding translations from {source_spoken(source)}."
+        found = await catalog(data, source)
+        if not set_option(intent_obj, **{CONF_SOURCE: source}):
+            return NOT_SET_UP
+        language = language_of(data.language, found["languages"])
+        count = sum(1 for t in found["translations"] if t["language"] == data.language)
+        if count == 0:
+            others = ", ".join(language_name(lang) for lang in found["languages"][:5])
+            return (
+                f"Translations from {source_spoken(source)} from now on; "
+                f"it has none in {language}. It has some in {others}: "
+                'say "use English translations", for one.'
+            )
+        return (
+            f"Translations from {source_spoken(source)} from now on: "
+            f"{count} in {language}. Say \"what translations are there?\" to hear them."
         )
 
 
@@ -803,8 +878,8 @@ class ListLanguagesHandler(EbacHandler):
         languages = (await catalog(data))["languages"]
         items = [f"{language_name(lang)}, {lang.get('count', 0)}" for lang in languages]
         intro = (
-            f"{len(languages)} languages, with how many translations each; "
-            f"now adding in {language_of(data.language, languages)}: "
+            f"{len(languages)} languages in {source_spoken(data.source)}, with how "
+            f"many translations each; now adding in {language_of(data.language, languages)}: "
         )
         return say_list(data, key, "languages", items, 1, intro)
 
@@ -832,10 +907,15 @@ class ListAvailableHandler(EbacHandler):
         if not translations:
             return f"There are no translations in {name}."
         items = [
-            f"{t['name']}: {t['title']}" + (", added" if t.get("added") else "")
+            (f"{t['names']}: {t['title']}, ebook {t['name']}" if t.get("names")
+             else f"{t['name']}: {t['title']}")
+            + (", added" if t.get("added") else "")
             for t in translations
         ]
-        return say_list(data, key, "translations", items, 1, f"{len(items)} in {name}: ")
+        return say_list(
+            data, key, "translations", items, 1,
+            f"{len(items)} in {name} from {source_spoken(data.source)}: ",
+        )
 
 
 class ListAddedHandler(EbacHandler):
@@ -883,13 +963,17 @@ class AddHandler(EbacHandler):
         if not data.allow_add:
             return not_allowed("Adding translations")
         said = self.async_validate_slots(intent_obj.slots)["name"]["value"].strip(" .?!")
-        found = await catalog(data)
+        source = data.source
+        found = await catalog(data, source)
         language = language_of(data.language, found["languages"])
         in_group = [t for t in found["translations"] if t["language"] == data.language]
         matches = match_translations(said, in_group)
         if not matches:
             elsewhere = match_translations(said, found["translations"])
-            speech = f'No translation in {language} is called "{said}".'
+            speech = (
+                f'No translation in {language} from {source_spoken(source)} '
+                f'is called "{said}".'
+            )
             if len(elsewhere) == 1:
                 other = language_of(elsewhere[0]["language"], found["languages"])
                 speech += f' There is one in {other}: say "use {other} translations" first.'
@@ -901,23 +985,27 @@ class AddHandler(EbacHandler):
         chosen = matches[0]
         spoken = spoken_title(chosen)
         if chosen.get("added"):
-            check = await data.api.check(chosen["name"])
+            check = await data.api.check(chosen["name"], source)
             if check.get("same_version"):
                 return (
                     f"You already have this version of {spoken}, downloaded "
                     f"{check.get('downloaded', '')}. To download it again, remove "
                     "it first, then add it."
                 )
-        terms = await data.api.source_license(chosen["name"])
+        terms = await data.api.source_license(chosen["name"], source)
         data.pending[key] = {
             "action": "add",
             "name": chosen["name"],
             "title": chosen["title"],
+            "source": source,
+            # (a Project Gutenberg ebook is asked for by number, but named,
+            # and read from, by its texts' short names: WEB-PG)
+            "shown": chosen.get("names") or chosen["name"],
             "until": time.monotonic() + CONFIRM_SECONDS,
         }
         return (
             f"{spoken}. Its license: {terms.get('license') or 'not stated'}. "
-            "The details are on CrossWire's page for it. "
+            f"The details are {SOURCES[source]['details']}. "
             "Say yes or no: do you agree to its license?"
         )
 
@@ -957,14 +1045,16 @@ class YesHandler(EbacHandler):
         if pending is None or pending["until"] < time.monotonic():
             return "There's no question waiting for a yes."
         name, title = pending["name"], pending["title"]
-        spoken = f"{title} ({name})"
+        shown = pending.get("shown", name)
+        spoken = f"{title} ({shown})"
         if pending["action"] == "add":
             if not data.allow_add:
                 return not_allowed("Adding translations")
             who = await adding.asker(intent_obj)
-            await data.api.add(name, adding.agreed_text(who))
+            source = pending.get("source")
+            await data.api.add(name, adding.agreed_text(who), source)
             intent_obj.hass.async_create_background_task(
-                adding.watch_add(intent_obj.hass, name, title, who),
+                adding.watch_add(intent_obj.hass, name, title, who, source, shown),
                 f"EBaC: adding {name}",
             )
             return f"Adding {spoken}. It takes a minute or two; you'll be told when it's done."
@@ -998,7 +1088,7 @@ class NoHandler(EbacHandler):
         pending = data.pending.pop(key, None)
         if pending is None or pending["until"] < time.monotonic():
             return "There's no question waiting."
-        spoken = f"{pending['title']} ({pending['name']})"
+        spoken = f"{pending['title']} ({pending.get('shown', pending['name'])})"
         if pending["action"] == "add":
             return f"All right: {spoken} isn't added."
         return f"All right: {spoken} isn't removed."

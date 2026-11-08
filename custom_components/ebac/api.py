@@ -134,26 +134,29 @@ class EbacApi:
         """What the EBaC app's options allow: {"add": ..., "remove": ...}."""
         return await self.request("permissions", admin=True)
 
-    async def catalog(self) -> dict[str, Any]:
-        """Every language and translation that can be added."""
-        return await self.request("catalog", admin=True)
+    # (source: which importer, as ebac-admin names them: scrollmapper,
+    # thiagobodruk, gutenberg; None, scrollmapper)
 
-    async def source_license(self, name: str) -> dict[str, Any]:
+    async def catalog(self, source: str | None = None) -> dict[str, Any]:
+        """Every language and translation that can be added from source."""
+        return await self.request("catalog", admin=True, source=source)
+
+    async def source_license(self, name: str, source: str | None = None) -> dict[str, Any]:
         """A translation's title, license and details page, from the source."""
-        return await self.request("license", admin=True, name=name)
+        return await self.request("license", admin=True, name=name, source=source)
 
-    async def check(self, name: str) -> dict[str, Any]:
+    async def check(self, name: str, source: str | None = None) -> dict[str, Any]:
         """Whether it is added, and if so whether it is the same version."""
-        return await self.request("check", admin=True, name=name)
+        return await self.request("check", admin=True, name=name, source=source)
 
-    async def add(self, name: str, agreed: str) -> dict[str, Any]:
+    async def add(self, name: str, agreed: str, source: str | None = None) -> dict[str, Any]:
         """Start adding it (in the background), agreeing to its license."""
-        return await self.request("add", admin=True, name=name, agreed=agreed)
+        return await self.request("add", admin=True, name=name, agreed=agreed, source=source)
 
-    async def status(self, name: str) -> dict[str, Any]:
+    async def status(self, name: str, source: str | None = None) -> dict[str, Any]:
         """How its add is going: running, done, failed, or none."""
-        return await self.request("status", admin=True, name=name)
+        return await self.request("status", admin=True, name=name, source=source)
 
     async def remove(self, name: str) -> dict[str, Any]:
-        """Remove it."""
+        """Remove it (by the importer that added it: ebac-admin knows)."""
         return await self.request("remove", admin=True, name=name)

@@ -21,6 +21,7 @@
         "description": "The translation EBaC reads from, to start with; the language to add translations in; and what Assist may do beyond reading. Anyone who can talk to a voice assistant can use what you allow here, with no user name or password: each box is off unless you check it, and each needs the one above it.",
         "data": {
           "translation": "Translation",
+          "source": "Where to add translations from",
           "language": "Language to add translations in",
           "allow_change": "Allow Assist to change the translation",
           "allow_add": "Allow Assist to add translations",
@@ -28,6 +29,7 @@
         },
         "data_description": {
           "translation": "Only translations added in the EBaC app are listed: add others there, with A at its main menu.",
+          "source": "\"Add translation\" said to Assist looks here, in the language below: thiagobodruk/bible or scrollmapper's collection on GitHub, or Project Gutenberg (by ebook number: \"add translation 8294\"). Assist can change it: \"use Gutenberg translations\". A name said without its ending means this source's: \"NIV\" is NIV-TB.",
           "language": "\"Add translation\" said to Assist looks in this language. Assist can change it: \"use Spanish translations\". The list comes from the EBaC app when its options allow adding.",
           "allow_change": "Risk: anyone who can talk to a voice assistant, with no password, could switch to a translation you keep private (your own diary, imported as one) and hear it read aloud. Off: Assist reads only the translation above.",
           "allow_add": "Needs changing allowed. The EBaC app's \"Allow voice to add translations\" option must be on too.",
@@ -53,6 +55,7 @@
         "data": {
           "translation": "Translation",
           "read_on": "Verses to read for \"read on\"",
+          "source": "Where to add translations from",
           "language": "Language to add translations in",
           "speak_with": "Voice for \"EBaC voice\"",
           "allow_change": "Allow Assist to change the translation",
@@ -62,6 +65,7 @@
         "data_description": {
           "translation": "The translation verses are read from. Assist's sentences are in English, so the books' names are the translation's English ones.",
           "read_on": "Also how many verses are read for a chapter alone, such as \"Psalm 23\".",
+          "source": "\"Add translation\" said to Assist looks here, in the language below: thiagobodruk/bible or scrollmapper's collection on GitHub, or Project Gutenberg (by ebook number: \"add translation 8294\"). Assist can change it: \"use Gutenberg translations\". A name said without its ending means this source's: \"NIV\" is NIV-TB.",
           "language": "\"Add translation\" said to Assist looks in this language. Assist can change it: \"use Spanish translations\". The list comes from the EBaC app when its options allow adding.",
           "speak_with": "EBaC voice says some words another way (יהוה as \"Adonai\": EBaC's file \"said\"), then hands the text to this voice. To use it, choose \"EBaC voice\" as the text-to-speech in a voice assistant (Settings > Voice assistants); its language and voice there are this voice's. What Assist shows stays as the text is.",
           "allow_change": "Risk: anyone who can talk to a voice assistant, with no password, could switch to a translation you keep private (your own diary, imported as one) and hear it read aloud. Off: Assist reads only the translation above.",

@@ -122,9 +122,19 @@ async def tell(hass: HomeAssistant, who: Asker, message: str) -> None:
         _LOGGER.warning("Couldn't tell %s: %s", who.name, message, exc_info=True)
 
 
-async def watch_add(hass: HomeAssistant, name: str, title: str, who: Asker) -> None:
+async def watch_add(
+    hass: HomeAssistant,
+    name: str,
+    title: str,
+    who: Asker,
+    source: str | None = None,
+    shown: str | None = None,
+) -> None:
     """Wait for an add to end; then make it the integration's translation,
-    and tell whoever asked (or make a repair, if it failed)."""
+    and tell whoever asked (or make a repair, if it failed). name is what
+    was asked for, from source (a Project Gutenberg ebook's number); shown,
+    its short names (WEB-PG), the first of which is then read from."""
+    shown = shown or name
     started = time.monotonic()
     state = "running"
     message = ""
@@ -134,7 +144,7 @@ async def watch_add(hass: HomeAssistant, name: str, title: str, who: Asker) -> N
         if data is None:
             continue  # (being set up again: ask next time)
         try:
-            status = await data.api.status(name)
+            status = await data.api.status(name, source)
         except EbacError as err:
             _LOGGER.warning("Asking how adding %s goes: %s", name, err)
             continue
@@ -142,7 +152,7 @@ async def watch_add(hass: HomeAssistant, name: str, title: str, who: Asker) -> N
         message = status.get("message", "")
         if state != "running":
             break
-    spoken = f"{title} ({name})"
+    spoken = f"{title} ({shown})"
     if state == "done":
         ir.async_delete_issue(hass, DOMAIN, issue_id(name))
         entries = hass.config_entries.async_entries(DOMAIN)
@@ -150,7 +160,7 @@ async def watch_add(hass: HomeAssistant, name: str, title: str, who: Asker) -> N
             entry = entries[0]
             # (EBaC is then set up again, with its books)
             hass.config_entries.async_update_entry(
-                entry, options={**entry.options, CONF_TRANSLATION: name}
+                entry, options={**entry.options, CONF_TRANSLATION: shown.split()[0]}
             )
         await tell(hass, who, f"{spoken} is added. Now reading from it.")
         return

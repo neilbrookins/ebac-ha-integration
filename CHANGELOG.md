@@ -3,6 +3,14 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.0
+
+### Added
+
+- **Where to add translations from**: a Source setting under **Configure** (thiagobodruk/bible, scrollmapper's bible_databases, or Project Gutenberg), beside the language, for the whole house; "use Gutenberg translations" or "use translations from Thiago Bodruk" changes it by voice. "Add translation NIV" then looks in that source and language, and both stay until changed, so several can be added one after another by name alone. Needs the EBaC app 2.14.0 or later.
+- A name said without its source's ending means that source's: "NIV" is NIV-TB, "DRC" is DRC-PG. Project Gutenberg's texts can be asked for by ebook number too: "add translation 8294".
+- Removing a translation by voice uses the importer that added it, whatever the source setting.
+
 ## 0.7.2
 
 ### Changed

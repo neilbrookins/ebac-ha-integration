@@ -3,6 +3,12 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.2
+
+### Fixed
+
+- **"Use translation scrollmapper"** (the word "translation" before the name) is understood, for a source or a language; and "SM" for scrollmapper. Said of a translation added ("use translation KJVA"), it reads from it, as "change translation to KJVA" does (if changing is allowed).
+
 ## 0.8.1
 
 ### Fixed

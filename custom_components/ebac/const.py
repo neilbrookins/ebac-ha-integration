@@ -42,7 +42,7 @@ SOURCES: dict[str, dict] = {
         "suffix": "",
         "details": "on CrossWire's page for it",
         "said": ["scrollmapper", "scroll mapper", "scrollmaster", "scroll master",
-                 "bible databases", "crosswire"],
+                 "bible databases", "crosswire", "sm", "s m"],
     },
     "gutenberg": {
         "label": "Project Gutenberg (by ebook number; names end in -PG)",

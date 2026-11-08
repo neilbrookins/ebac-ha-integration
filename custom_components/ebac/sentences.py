@@ -230,6 +230,9 @@ OTHER_SENTENCES = {
         # then a source heard nearly right)
         "(use|used|uses|get) translations from {ebac_language:language}",
         "(use|used|uses|choose|select|switch to) [the] source {ebac_language:language}",
+        # ("use translation scrollmapper": the word before the name; also a
+        # translation added, to read from: see UseLanguageHandler)
+        "(use|used|uses) [the] (translation|translations) [source] {ebac_language:language}",
     ],
     INTENT_LIST_LANGUAGES: [
         "(which|what) languages (are there|can i (add|choose|use)|have translations)",

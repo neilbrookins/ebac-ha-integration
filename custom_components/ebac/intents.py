@@ -523,18 +523,22 @@ class TranslationHandler(EbacHandler):
         if len(found) > 1:
             names = "; or ".join(spoken_title(t) for t in found)
             return f"Which one: {names}?"
-        chosen = found[0]
-        if chosen["name"] == data.translation:
-            return f"Already reading from {spoken_title(chosen)}."
-        entries = intent_obj.hass.config_entries.async_entries(DOMAIN)
-        if not entries:
-            return NOT_SET_UP
-        entry = entries[0]
-        # (EBaC is then set up again, with the new translation's books)
-        intent_obj.hass.config_entries.async_update_entry(
-            entry, options={**entry.options, CONF_TRANSLATION: chosen["name"]}
-        )
-        return f"Now reading from {spoken_title(chosen)}."
+        return change_translation(intent_obj, data, found[0])
+
+
+def change_translation(intent_obj: intent.Intent, data: EbacData, chosen: dict) -> str:
+    """Read from the translation chosen, from now on (the whole house)."""
+    if chosen["name"] == data.translation:
+        return f"Already reading from {spoken_title(chosen)}."
+    entries = intent_obj.hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        return NOT_SET_UP
+    entry = entries[0]
+    # (EBaC is then set up again, with the new translation's books)
+    intent_obj.hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_TRANSLATION: chosen["name"]}
+    )
+    return f"Now reading from {spoken_title(chosen)}."
 
 
 class WhichTranslationHandler(EbacHandler):
@@ -847,26 +851,41 @@ def set_option(intent_obj: intent.Intent, **changes: Any) -> bool:
 class UseLanguageHandler(EbacHandler):
     """ "Use Spanish translations", "manipulate translations Spanish": the
     language "add translation" looks in, from now on (the whole house). And
-    "use Gutenberg translations", "use translations from Thiago Bodruk":
-    the source it looks in (a source's name is tried first)."""
+    "use Gutenberg translations", "use translation scrollmapper": the
+    source it looks in. What was said is tried as a source's name; then a
+    language's; then a source's heard nearly right; then, as "use
+    translation KJVA" may mean, a translation added, to read from (as
+    "change translation to KJVA")."""
 
     slot_schema = {vol.Required("language"): cv.string}
 
     async def answer(self, intent_obj, data, key):
-        if not data.allow_add:
-            return not_allowed("Adding translations")
         said = self.async_validate_slots(intent_obj.slots)["language"]["value"].strip(" .?!")
         source = source_named(said)
         if source is not None:
+            if not data.allow_add:
+                return not_allowed("Adding translations")
             return await self.use_source(intent_obj, data, source)
-        languages = (await catalog(data))["languages"]
-        found = match_languages(said, languages)
+        found = []
+        if data.allow_add:
+            languages = (await catalog(data))["languages"]
+            found = match_languages(said, languages)
+            if not found:
+                # (a source heard nearly right, once no language is named)
+                source = source_named(said, close=True)
+                if source is not None:
+                    return await self.use_source(intent_obj, data, source)
         if not found:
-            # (a source heard nearly right, once no language is named)
-            source = source_named(said, close=True)
-            if source is not None:
-                return await self.use_source(intent_obj, data, source)
-            return f'No language called "{said}" has translations. Say "which languages are there?" to hear them.'
+            installed = match_translations(said, await data.api.translations())
+            if len(installed) == 1 and data.allow_change:
+                return change_translation(intent_obj, data, installed[0])
+            if not data.allow_add:
+                return not_allowed("Adding translations")
+            return (
+                f'No language or source called "{said}". Say "which languages are '
+                'there?" to hear the languages; the sources are thiagobodruk/bible, '
+                "scrollmapper's bible databases and Project Gutenberg."
+            )
         if len(found) > 1:
             return "Which one: " + "; or ".join(language_name(lang) for lang in found) + "?"
         language = found[0]

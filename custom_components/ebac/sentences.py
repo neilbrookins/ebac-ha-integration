@@ -222,12 +222,14 @@ OTHER_SENTENCES = {
     # The language group, lists, adding and removing (the handlers check
     # the integration's checkboxes)
     INTENT_USE_LANGUAGE: [
-        "(use|switch to|choose|select) {ebac_language:language} translations",
+        # ("used", "uses": "use" as speech to text sometimes hears it)
+        "(use|used|uses|switch to|choose|select) {ebac_language:language} translations",
         "manipulate translations {ebac_language:language}",
         "manipulate {ebac_language:language} translations",
-        # (the source, too: a source's name is tried first, then a language)
-        "(use|get) translations from {ebac_language:language}",
-        "(use|choose|select|switch to) [the] source {ebac_language:language}",
+        # (the source, too: a source's name is tried first, then a language,
+        # then a source heard nearly right)
+        "(use|used|uses|get) translations from {ebac_language:language}",
+        "(use|used|uses|choose|select|switch to) [the] source {ebac_language:language}",
     ],
     INTENT_LIST_LANGUAGES: [
         "(which|what) languages (are there|can i (add|choose|use)|have translations)",

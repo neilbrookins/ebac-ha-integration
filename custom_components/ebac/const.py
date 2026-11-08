@@ -33,8 +33,8 @@ SOURCES: dict[str, dict] = {
         "spoken": "thiagobodruk/bible",
         "suffix": "-TB",
         "details": "on the source's page about its licenses",
-        "said": ["thiagobodruk", "thiago bodruk", "thiago", "bodruk", "tb",
-                 "thiago bodruk bible", "thiagobodruk bible"],
+        "said": ["thiagobodruk", "thiago bodruk", "thiago", "bodruk", "tb", "t b",
+                 "thiago bodruk bible", "thiagobodruk bible", "bodruk bible"],
     },
     "scrollmapper": {
         "label": "scrollmapper's bible_databases on GitHub",
@@ -49,7 +49,8 @@ SOURCES: dict[str, dict] = {
         "spoken": "Project Gutenberg",
         "suffix": "-PG",
         "details": "on its page at Project Gutenberg",
-        "said": ["gutenberg", "project gutenberg", "guttenberg", "project guttenberg", "pg"],
+        "said": ["gutenberg", "project gutenberg", "guttenberg", "project guttenberg",
+                 "pg", "p g"],
     },
 }
 

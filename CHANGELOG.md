@@ -3,6 +3,13 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.1
+
+### Fixed
+
+- **A source's name heard nearly right is understood**: "Thiago Bodruck", "theago bodruck", "Gutenburg", "scroll map her" (speech to text spells names it doesn't know as it hears them). Tried only when no language has that name, and none of the 85 languages' names comes close.
+- "Used Thiago Bodruk translations" ("use" heard as "used") is understood.
+
 ## 0.8.0
 
 ### Added

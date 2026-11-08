@@ -9,6 +9,7 @@ verse" on the kitchen speaker goes on from what the kitchen heard.
 from __future__ import annotations
 
 import re
+from difflib import SequenceMatcher
 import time
 import unicodedata
 from typing import TYPE_CHECKING, Any
@@ -733,14 +734,44 @@ async def catalog(data: EbacData, source: str | None = None) -> dict[str, Any]:
     return found
 
 
-def source_named(said: str) -> str | None:
+def source_named(said: str, close: bool = False) -> str | None:
     """The source the words said name ("Gutenberg", "Thiago Bodruk",
-    "scrollmapper"), as const.SOURCES has them; else None."""
+    "scrollmapper"), as const.SOURCES has them; else None. With close, also
+    a name heard nearly right ("Thiago Bodruck", "theago bodruck",
+    "Gutenburg"): speech to text spells a name it doesn't know as it
+    hears it. The closest of the names, by the letters in common (and of
+    each word said, against each word of the names), if it is close enough
+    and clearly closer than any other source's."""
     letters = "".join(words_of(said))
     for key, source in SOURCES.items():
         if letters in {"".join(words_of(name)) for name in source["said"]}:
             return key
+    if not close or len(letters) < 4:
+        return None
+    best: dict[str, float] = {}
+    for key, source in SOURCES.items():
+        score = 0.0
+        for name in source["said"]:
+            whole = "".join(words_of(name))
+            if len(whole) >= 4:
+                score = max(score, SequenceMatcher(None, letters, whole).ratio())
+            # (one word heard nearly right, among others: "bodruck")
+            for word in words_of(said):
+                for part in words_of(name):
+                    if len(word) >= 5 and len(part) >= 5:
+                        score = max(score, SequenceMatcher(None, word, part).ratio() - 0.05)
+        best[key] = score
+    ranked = sorted(best.items(), key=lambda item: item[1], reverse=True)
+    if ranked[0][1] >= CLOSE_ENOUGH and ranked[0][1] - ranked[1][1] >= 0.15:
+        return ranked[0][0]
     return None
+
+
+# How alike a name heard must be to a source's (0 to 1: SequenceMatcher's
+# ratio): "thiagobodruck" and "thiagobodruk" are 0.96, "teago bodrick"
+# enough; none of the 85 languages' English names (thiagobodruk/bible's)
+# comes near, and a language named is matched before this is tried
+CLOSE_ENOUGH = 0.75
 
 
 def source_spoken(key: str) -> str:
@@ -831,6 +862,10 @@ class UseLanguageHandler(EbacHandler):
         languages = (await catalog(data))["languages"]
         found = match_languages(said, languages)
         if not found:
+            # (a source heard nearly right, once no language is named)
+            source = source_named(said, close=True)
+            if source is not None:
+                return await self.use_source(intent_obj, data, source)
             return f'No language called "{said}" has translations. Say "which languages are there?" to hear them.'
         if len(found) > 1:
             return "Which one: " + "; or ".join(language_name(lang) for lang in found) + "?"

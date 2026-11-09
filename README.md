@@ -110,6 +110,18 @@ Uninstalling the EBaC app deletes its storage: the translations you added, every
 
 This integration stays until you remove it too. If EBaC hasn't answered for 15 minutes, a repair under **Settings → Repairs** says so, with what to do: start the app again, reinstall it, or remove this integration. It clears itself when EBaC answers again.
 
+## Tests
+
+`tests/` tests the integration in a real Home Assistant, against a fake EBaC (`tests/fake_ebac.py`) that answers as ebac-api and ebac-admin do: what Assist understands (through Home Assistant's own sentence matching), what each intent answers, setup and options, the permissions, EBaC voice, adding by voice, and the repair. They run on GitHub (the **Tests** workflow) on every push, and daily against both the current Home Assistant release and its beta, so a Home Assistant change that breaks EBaC shows up before it reaches anyone. A deprecation Home Assistant reports about EBaC fails them too.
+
+To run them yourself (Python 3.14):
+
+```sh
+pip install pytest-homeassistant
+pip install -r <(python tools/test_requirements.py)
+pytest
+```
+
 ## License
 
 GNU General Public License, version 2, as EBaC. See [`LICENSE`](LICENSE).

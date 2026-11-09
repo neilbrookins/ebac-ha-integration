@@ -93,17 +93,30 @@ async def test_not_ready_while_unreachable(hass: HomeAssistant, ebac: FakeEbac) 
     assert entry.state is ConfigEntryState.LOADED
 
 
-async def test_not_ready_while_translation_missing(
-    hass: HomeAssistant, ebac: FakeEbac
+async def test_translation_missing_until_back(
+    hass: HomeAssistant, ebac: FakeEbac, freezer: FrozenDateTimeFactory
 ) -> None:
-    """The translation in use removed in the app: EBaC's message, retried."""
+    """The translation chosen removed in the app (perhaps to be added
+    again): EBaC's first is read from meanwhile, the option kept, and the
+    regular check reads from it again when it is back. (It once refused to
+    start, leaving every sentence unanswered.)"""
     ebac.installed = ["AV"]
-    entry = make_entry(**{CONF_TRANSLATION: "WLC"})
-    entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
+    entry = await setup_ebac(hass, **{CONF_TRANSLATION: "WLC"})
+    assert entry.state is ConfigEntryState.LOADED
+    data = entry.runtime_data
+    assert data.translation is None
+    assert data.missing == "WLC"
+    assert data.title == "King James Version"
+    assert entry.options[CONF_TRANSLATION] == "WLC"
+    assert "John 3:16" in await say(hass, INTENT_READ, book="John", chapter=3, verse=16)
+
+    ebac.installed = ["AV", "WLC"]
+    freezer.tick(timedelta(minutes=5))
+    async_fire_time_changed(hass)
     await hass.async_block_till_done()
-    assert entry.state is ConfigEntryState.SETUP_RETRY
-    assert "WLC" in (entry.reason or "")
+    data = entry.runtime_data
+    assert data.translation == "WLC"
+    assert data.missing is None
 
 
 async def test_permissions_need_the_one_above(hass: HomeAssistant, ebac: FakeEbac) -> None:
@@ -306,14 +319,3 @@ def test_sentence_file_helpers(tmp_path: Path) -> None:
     assert sentences.remove(str(tmp_path)) is True
     assert sentences.remove(str(tmp_path)) is False  # (already gone)
 
-
-async def test_setup_translation_removed(hass: HomeAssistant, ebac: FakeEbac) -> None:
-    """The translation chosen was removed in EBaC since: EBaC's first is
-    used, the option cleared, and voice still works (it once refused to
-    start, leaving every sentence unanswered)."""
-    entry = await setup_ebac(hass, **{CONF_TRANSLATION: "GONE"})
-    assert entry.state is ConfigEntryState.LOADED
-    assert entry.runtime_data.translation is None
-    assert entry.runtime_data.title == "King James Version"
-    assert CONF_TRANSLATION not in entry.options
-    assert "loved" in await say(hass, INTENT_READ, book="John", chapter=3, verse=16)

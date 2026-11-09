@@ -6,13 +6,14 @@ by running the Release workflow (Actions tab): see .github/workflows/release.yml
 ## 0.8.5
 
 ### Fixed
-- **Voice works when its translation has been removed.** With the
-  translation chosen in its options removed in EBaC since, the
-  integration refused to start, retrying, so every sentence was
-  recognised but unanswered ("Unknown intent EbacRead"), even "use
+- **Voice works while its translation is removed.** With the
+  translation chosen in its options removed in EBaC (perhaps to be added
+  again), the integration refused to start, retrying, so every sentence
+  was recognised but unanswered ("Unknown intent EbacRead"), even "use
   translation …", the one that would set it right. It now reads from
-  EBaC's first translation, as when none is chosen, and clears the
-  option.
+  EBaC's first translation meanwhile, keeping the option, and reads from
+  the one chosen again once it is back (within five minutes, or at once
+  when chosen by voice).
 
 ## 0.8.4
 

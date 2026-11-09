@@ -87,6 +87,10 @@ class EbacData:
     # words to say another way aloud, for EBaC voice (tts.py): [{"word":
     # "יהוה", "say": "Adonai"}], asked for again with the regular check
     said: list[dict[str, str]] = field(default_factory=list)
+    # the translation chosen in the options, while EBaC hasn't it (removed,
+    # perhaps to be added again): EBaC's first is read from meanwhile, and
+    # the regular check sets reading up again when it is back
+    missing: str | None = None
 
 
 class Places:
@@ -134,8 +138,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         """Does EBaC still answer? (removed, the repair: reachable.py)"""
         data = entry.runtime_data
         try:
-            await data.api.translations()
+            translations = await data.api.translations()
             data.said = await data.api.said()
+            if data.missing in {t["name"] for t in translations}:
+                # the translation chosen is back: read from it again
+                await async_set_up_reading_again(hass, entry)
         except EbacUnreachable:
             await reachable.async_unanswered(hass, entry.data[CONF_URL])
         except EbacError:
@@ -156,19 +163,21 @@ async def _async_set_up_reading(hass: HomeAssistant, entry: EbacConfigEntry) -> 
     translation = entry.options.get(CONF_TRANSLATION) or None
     try:
         translations = await api.translations()
+        missing = None
         if translation and translation not in {t["name"] for t in translations}:
-            # Removed since it was chosen (in EBaC, or by voice): EBaC's
-            # first is used, as when none is chosen, and the option is
-            # cleared to say so. Refusing to start instead would leave
-            # every sentence unanswered, even "use translation …", the
-            # one that would set it right (November 9, 2026: CNVS-TB).
+            # Removed in EBaC since it was chosen (perhaps to be added
+            # again): until it is back, EBaC's first is read from, as when
+            # none is chosen, and the option is kept, so that it is used
+            # again when it is back (the regular check sees that). Refusing
+            # to start instead left every sentence unanswered, even "use
+            # translation …", the one that would set it right (November 9,
+            # 2026: CNVS-TB).
             _LOGGER.warning(
-                "The translation %s is no longer in EBaC: using its first", translation
+                "The translation %s is not in EBaC: reading from its first "
+                "until it is back",
+                translation,
             )
-            translation = None
-            options = dict(entry.options)
-            options.pop(CONF_TRANSLATION, None)
-            hass.config_entries.async_update_entry(entry, options=options)
+            missing, translation = translation, None
         books = await api.books(translation)
         numbers = await api.numbers(translation)
         said = await api.said()
@@ -213,6 +222,7 @@ async def _async_set_up_reading(hass: HomeAssistant, entry: EbacConfigEntry) -> 
         language=options.get(CONF_LANGUAGE) or DEFAULT_LANGUAGE,
         source=options.get(CONF_SOURCE) if options.get(CONF_SOURCE) in SOURCES else DEFAULT_SOURCE,
         said=said,
+        missing=missing,
     )
     hass.data[DOMAIN] = entry.runtime_data
 
@@ -259,6 +269,13 @@ async def _options_changed(hass: HomeAssistant, entry: EbacConfigEntry) -> None:
     as at a start."""
     # (the intents stay registered, and are registered again: no moment
     # without them)
+    await async_set_up_reading_again(hass, entry)
+
+
+async def async_set_up_reading_again(hass: HomeAssistant, entry: EbacConfigEntry) -> None:
+    """Reading set up again (another translation chosen, or the one chosen
+    back in EBaC), the places kept first. If EBaC can't answer just now,
+    everything is set up again, and retried as at a start."""
     await entry.runtime_data.places.async_save()
     try:
         await _async_set_up_reading(hass, entry)

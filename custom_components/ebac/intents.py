@@ -534,6 +534,15 @@ def change_translation(intent_obj: intent.Intent, data: EbacData, chosen: dict) 
     if not entries:
         return NOT_SET_UP
     entry = entries[0]
+    if chosen["name"] == data.missing:
+        # back since it was missing, and still the option: unchanged, the
+        # option wouldn't set reading up again, so it is done here
+        from . import async_set_up_reading_again  # (it imports this)
+
+        intent_obj.hass.async_create_task(
+            async_set_up_reading_again(intent_obj.hass, entry)
+        )
+        return f"Now reading from {spoken_title(chosen)}."
     # (EBaC is then set up again, with the new translation's books)
     intent_obj.hass.config_entries.async_update_entry(
         entry, options={**entry.options, CONF_TRANSLATION: chosen["name"]}

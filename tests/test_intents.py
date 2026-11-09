@@ -754,3 +754,18 @@ async def test_remove_no(hass: HomeAssistant, ebac: FakeEbac) -> None:
 
 async def test_no_without_a_question(hass: HomeAssistant, entry: MockConfigEntry) -> None:
     assert await say(hass, INTENT_NO) == "There's no question waiting."
+
+
+async def test_translation_back_chosen_by_voice(hass: HomeAssistant, ebac: FakeEbac) -> None:
+    """The translation chosen was missing, is back, and is chosen by voice
+    before the regular check sees it: the option is unchanged, but it is
+    read from."""
+    ebac.installed = ["AV"]
+    entry = await setup_ebac(hass, **{CONF_ALLOW_CHANGE: True, CONF_TRANSLATION: "WLC"})
+    assert entry.runtime_data.missing == "WLC"
+    ebac.installed = ["AV", "WLC"]
+    speech = await say(hass, INTENT_TRANSLATION, name="WLC")
+    await hass.async_block_till_done()
+    assert speech.startswith("Now reading from")
+    assert entry.runtime_data.translation == "WLC"
+    assert entry.runtime_data.missing is None

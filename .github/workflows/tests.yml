@@ -1,0 +1,42 @@
+# The integration's tests (tests/), against Home Assistant as released and
+# as its next beta: on every push, and every day, so a Home Assistant
+# change that breaks EBaC is found here before it reaches anyone's home.
+# (The beta comes out about a week before each monthly release; when there
+# is none newer than the release, both runs test the release.)
+name: Tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "37 9 * * *"   # daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Home Assistant ${{ matrix.home-assistant }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        home-assistant: [release, beta]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Home Assistant and its test package (the matching version)
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ matrix.home-assistant }}" = beta ]; then
+            pip install --pre pytest-homeassistant
+          else
+            pip install pytest-homeassistant
+          fi
+          pip install -r <(python tools/test_requirements.py)
+          echo "### Home Assistant $(pip show homeassistant | sed -n 's/^Version: //p')" >> "$GITHUB_STEP_SUMMARY"
+      - name: Tests
+        run: pytest -v --durations=10

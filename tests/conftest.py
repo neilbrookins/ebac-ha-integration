@@ -12,6 +12,7 @@ import pytest
 from homeassistant.components import conversation
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import intent
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import MockConfigEntry
 from pytest_homeassistant.test_util.aiohttp import (
     AiohttpClientMocker,
@@ -44,8 +45,11 @@ def hass_config_dir(hass_tmp_config_dir: str) -> str:
 
 
 @pytest.fixture
-def ebac(aioclient_mock: AiohttpClientMocker) -> FakeEbac:
-    """The fake EBaC, answering at fake_ebac.URL (and ebac-admin beside it)."""
+async def ebac(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> FakeEbac:
+    """The fake EBaC, answering at fake_ebac.URL (and ebac-admin beside it);
+    and Home Assistant's core integration, always set up in a home (Assist
+    needs it: its exposed entities)."""
+    assert await async_setup_component(hass, "homeassistant", {})
     fake = FakeEbac()
 
     async def respond(method: str, url: Any, data: Any) -> AiohttpClientMockResponse:

@@ -22,7 +22,6 @@ from .test_intents import refs
 @pytest.fixture
 async def assist(hass: HomeAssistant, ebac: FakeEbac) -> None:
     """Assist, and EBaC reading the AV."""
-    assert await async_setup_component(hass, "homeassistant", {})
     assert await async_setup_component(hass, "conversation", {})
     await setup_ebac(hass)
 
@@ -40,7 +39,7 @@ async def assist(hass: HomeAssistant, ebac: FakeEbac) -> None:
         ("Read the book of John chapter 3 verse 16", ["John 3:16"]),
         ("Genesis I colon I", ["Genesis 1:1"]),
         ("Psalm one hundred nineteen verse one", ["Psalms 119:1"]),
-        ("Psalms 119:105", ["Psalms 119:105"]),
+        ("Psalms 119:15", ["Psalms 119:15"]),
         ("1 Samuel 3:4", ["1 Samuel 3:4"]),
         ("First Samuel 3:4", ["1 Samuel 3:4"]),
         ("I Samuel 3:4", ["1 Samuel 3:4"]),

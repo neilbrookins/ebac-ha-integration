@@ -27,7 +27,7 @@ def api(hass: HomeAssistant, ebac: FakeEbac) -> EbacApi:
         ("http://web.test/cgi-bin/bible", "http://web.test/cgi-bin/ebac-admin"),
     ],
 )
-def test_admin_beside_api(hass: HomeAssistant, url: str, admin: str) -> None:
+async def test_admin_beside_api(hass: HomeAssistant, url: str, admin: str) -> None:
     api = EbacApi(async_get_clientsession(hass), url)
     assert api._admin == admin
 

@@ -464,7 +464,7 @@ async def test_adding_not_allowed(
 async def test_list_languages(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
     assert await say(hass, INTENT_LIST_LANGUAGES) == (
-        "3 languages in scrollmapper's bible databases, with how many translations each; "
+        "3 languages in scrollmapper/bible_databases, with how many translations each; "
         "now adding in English: 1, English, 3; 2, Spanish, 1; 3, Ancient Greek, 1."
     )
 
@@ -488,12 +488,12 @@ async def test_list_paging(hass: HomeAssistant, ebac: FakeEbac) -> None:
 async def test_list_available(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
     assert await say(hass, INTENT_LIST_AVAILABLE) == (
-        "3 in English from scrollmapper's bible databases: 1, LITV: Literal Translation "
+        "3 in English from scrollmapper/bible_databases: 1, LITV: Literal Translation "
         "of the Holy Bible; 2, ASV: American Standard Version; 3, KJVA: King James "
         "Version with Apocrypha, added."
     )
     assert await say(hass, INTENT_LIST_AVAILABLE, language="Español") == (
-        "1 in Spanish from scrollmapper's bible databases: 1, RVG: Reina Valera Gómez."
+        "1 in Spanish from scrollmapper/bible_databases: 1, RVG: Reina Valera Gómez."
     )
     assert await say(hass, INTENT_LIST_AVAILABLE, language="Klingon") == (
         'Which language is "Klingon"? Say "which languages are there?" to hear them.'
@@ -519,8 +519,8 @@ async def test_catalog_kept_a_while(hass: HomeAssistant, ebac: FakeEbac) -> None
 async def test_use_language(hass: HomeAssistant, ebac: FakeEbac) -> None:
     entry = await setup_ebac(hass, **ALLOW_ALL)
     assert await say(hass, INTENT_USE_LANGUAGE, language="Spanish") == (
-        "Translations in Spanish from now on: 1 translation from scrollmapper's bible "
-        'databases. Say "what translations are there?" to hear them.'
+        "Translations in Spanish from now on: 1 translation from scrollmapper/bible_databases. "
+        'Say "what translations are there?" to hear them.'
     )
     await hass.async_block_till_done()
     assert entry.options[CONF_LANGUAGE] == "es"
@@ -650,7 +650,7 @@ async def test_yes_on_another_device(
 async def test_add_from_another_language(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
     assert await say(hass, INTENT_ADD, name="RVG") == (
-        'No translation in English from scrollmapper\'s bible databases is called "RVG". '
+        'No translation in English from scrollmapper/bible_databases is called "RVG". '
         'There is one in Spanish: say "use Spanish translations" first.'
     )
 

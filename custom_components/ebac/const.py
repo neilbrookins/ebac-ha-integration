@@ -37,8 +37,8 @@ SOURCES: dict[str, dict] = {
                  "thiago bodruk bible", "thiagobodruk bible", "bodruk bible"],
     },
     "scrollmapper": {
-        "label": "scrollmapper's bible_databases on GitHub",
-        "spoken": "scrollmapper's bible databases",
+        "label": "scrollmapper/bible_databases on GitHub",
+        "spoken": "scrollmapper/bible_databases",
         "suffix": "",
         "details": "on CrossWire's page for it",
         "said": ["scrollmapper", "scroll mapper", "scrollmaster", "scroll master",

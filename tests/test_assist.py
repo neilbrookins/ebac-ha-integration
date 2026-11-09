@@ -135,7 +135,7 @@ async def test_by_voice_with_everything_allowed(hass: HomeAssistant, ebac: FakeE
     )
     await hass.async_block_till_done()
     assert (await ask(hass, "use translation scrollmapper")).startswith(
-        "Already adding translations from scrollmapper's bible databases"
+        "Already adding translations from scrollmapper/bible_databases"
     )
     assert (await ask(hass, "what translations can I add")).startswith("1 in Spanish")
     assert (await ask(hass, "add translation RVG")).endswith(

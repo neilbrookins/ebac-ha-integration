@@ -37,6 +37,21 @@ from .fake_ebac import URL, Answer, FakeEbac
 ALLOW_ALL = {CONF_ALLOW_CHANGE: True, CONF_ALLOW_ADD: True, CONF_ALLOW_REMOVE: True}
 
 
+@pytest.fixture(autouse=True)
+def no_deprecation_reports(caplog: pytest.LogCaptureFixture):
+    """Home Assistant tells of what it will stop supporting months before
+    it does: "Detected that custom integration 'ebac' ... This will stop
+    working in Home Assistant 2027.5". Any such report fails the test, so
+    it is seen here, in time to change, not in someone's log."""
+    yield
+    reports = [
+        record.getMessage()
+        for record in caplog.records
+        if "custom integration 'ebac'" in record.getMessage()
+    ]
+    assert not reports, reports
+
+
 @pytest.fixture
 def hass_config_dir(hass_tmp_config_dir: str) -> str:
     """A config directory of each test's own: the integration writes its

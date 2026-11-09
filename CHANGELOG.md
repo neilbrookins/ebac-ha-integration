@@ -3,6 +3,12 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.4
+
+### Changed
+
+- The second source is named as GitHub names it, **scrollmapper/bible_databases** (user/repository), under **Configure** and in the README, as thiagobodruk/bible already was.
+
 ## 0.8.3
 
 ### Fixed

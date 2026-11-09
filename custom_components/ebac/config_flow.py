@@ -140,7 +140,10 @@ def permission_errors(user_input: dict[str, Any]) -> dict[str, str]:
 
 
 class EbacConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Set up EBaC (one, for all of Home Assistant)."""
+    """Set up EBaC (one, for all of Home Assistant: kept to one by its
+    unique ID, DOMAIN, rather than manifest.json's single_config_entry,
+    which would turn the app's announcement away before async_step_hassio,
+    so a new address of the app would never be followed)."""
 
     VERSION = 1
 

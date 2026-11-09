@@ -906,9 +906,16 @@ class UseLanguageHandler(EbacHandler):
         if source == data.source:
             return f"Already adding translations from {source_spoken(source)}."
         found = await catalog(data, source)
+        language = language_of(data.language, found["languages"])
+        if language == data.language:
+            # (a language the new source hasn't: named as the source looked
+            # in until now names it, "Spanish", not by its code)
+            try:
+                language = language_of(data.language, (await catalog(data))["languages"])
+            except (EbacError, KeyError):
+                pass
         if not set_option(intent_obj, **{CONF_SOURCE: source}):
             return NOT_SET_UP
-        language = language_of(data.language, found["languages"])
         count = sum(1 for t in found["translations"] if t["language"] == data.language)
         if count == 0:
             others = ", ".join(language_name(lang) for lang in found["languages"][:5])

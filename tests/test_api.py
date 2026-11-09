@@ -47,8 +47,8 @@ async def test_no_translation_given_is_not_sent(api: EbacApi, ebac: FakeEbac) ->
 
 async def test_error_answer_is_spoken_message(api: EbacApi) -> None:
     """ebac-api's {"error": ...} becomes the message Assist says."""
-    with pytest.raises(EbacError, match="There is no John 3:40") as err:
-        await api.verse("AV", "John 3:40")
+    with pytest.raises(EbacError, match="There is no John 3:41") as err:
+        await api.verse("AV", "John 3:41")
     assert not isinstance(err.value, EbacUnreachable)
 
 

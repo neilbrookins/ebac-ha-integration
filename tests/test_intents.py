@@ -130,7 +130,7 @@ async def test_book_of_another_translation(hass: HomeAssistant, ebac: FakeEbac) 
 
 async def test_ebac_error_spoken(hass: HomeAssistant, entry: MockConfigEntry) -> None:
     """EBaC's message is said, ending as a sentence."""
-    assert await read(hass, "John", 3, 40) == "There is no John 3:40."
+    assert await read(hass, "John", 3, 41) == "There is no John 3:41."
 
 
 async def test_ebac_unreachable_spoken(
@@ -162,7 +162,7 @@ async def test_read_on(hass: HomeAssistant, entry: MockConfigEntry) -> None:
 
 
 async def test_next_across_chapters(hass: HomeAssistant, entry: MockConfigEntry) -> None:
-    await read(hass, "John", 3, 30)
+    await read(hass, "John", 3, 40)
     assert refs(await say(hass, INTENT_NEXT)) == ["John 4:1"]
 
 

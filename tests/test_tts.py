@@ -116,6 +116,7 @@ def engine():
 
 
 async def test_voice(hass: HomeAssistant, entry: MockConfigEntry, engine) -> None:
+    entry.runtime_data.said = SAID
     hass.states.async_set("tts.piper", "unknown")
     voice = EbacVoice(hass, entry)
     voice.hass = hass

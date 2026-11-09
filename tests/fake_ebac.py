@@ -17,7 +17,7 @@ from typing import Any
 
 URL = "http://ebac.test:8080/cgi-bin/ebac"
 ADMIN_URL = "http://ebac.test:8080/cgi-bin/ebac-admin"
-VERSES = 30
+VERSES = 40
 
 TETRAGRAMMATON = "יהוה"
 # The same word as the Westminster Leningrad Codex writes it: with vowel
@@ -222,8 +222,12 @@ class FakeEbac:
     def api_verse(self, params):
         t = self._translation(params)
         first, last = self._parse(t, params["ref"])
-        if last is None:
-            last = first + int(params.get("n", 1)) - 1
+        if "n" in params:
+            # (a count: that many verses from the first, as EBaC reads
+            # "read that again" of a range: its first verse and the count)
+            last = first + int(params["n"]) - 1
+        elif last is None:
+            last = first
         count = len(self._verses(t))
         return {
             "translation": t,

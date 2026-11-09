@@ -884,7 +884,7 @@ class UseLanguageHandler(EbacHandler):
             return (
                 f'No language or source called "{said}". Say "which languages are '
                 'there?" to hear the languages; the sources are thiagobodruk/bible, '
-                "scrollmapper's bible databases and Project Gutenberg."
+                "scrollmapper/bible_databases and Project Gutenberg."
             )
         if len(found) > 1:
             return "Which one: " + "; or ".join(language_name(lang) for lang in found) + "?"

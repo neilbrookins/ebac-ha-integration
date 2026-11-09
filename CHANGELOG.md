@@ -7,7 +7,7 @@ by running the Release workflow (Actions tab): see .github/workflows/release.yml
 
 ### Changed
 
-- The second source is named as GitHub names it, **scrollmapper/bible_databases** (user/repository), under **Configure** and in the README, as thiagobodruk/bible already was.
+- The second source is named as GitHub names it, **scrollmapper/bible_databases** (user/repository), as thiagobodruk/bible already was: under **Configure**, in the README, and in what Assist says and shows ("Translations from scrollmapper/bible_databases from now on"). Saying it is unchanged: "use scrollmapper translations", "bible databases" and "SM" are all still understood.
 
 ## 0.8.3
 

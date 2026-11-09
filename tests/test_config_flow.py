@@ -3,9 +3,7 @@ address typed; and its options (Configure)."""
 
 from __future__ import annotations
 
-import pytest
-
-from homeassistant.config_entries import SOURCE_HASSIO, SOURCE_USER
+from homeassistant.config_entries import SOURCE_HASSIO, SOURCE_USER, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.hassio import HassioServiceInfo
@@ -135,7 +133,7 @@ async def test_only_one(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass)
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "single_instance_allowed"
+    assert result["reason"] == "already_configured"
 
 
 async def test_found_by_the_app(hass: HomeAssistant, ebac: FakeEbac) -> None:
@@ -167,12 +165,6 @@ async def test_found_by_the_app_not_answering(hass: HomeAssistant, ebac: FakeEba
     assert result["errors"] == {"base": "cannot_connect"}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Known bug: with single_config_entry in manifest.json, Home Assistant "
-    "turns the announcement away (single_instance_allowed) before async_step_hassio, "
-    "so a new address is never followed. When fixed, this passes: remove this mark.",
-)
 async def test_app_moved(hass: HomeAssistant, ebac: FakeEbac) -> None:
     """Already set up: the app's announcement of a new address is followed."""
     entry = await setup_ebac(hass)
@@ -186,9 +178,25 @@ async def test_app_moved(hass: HomeAssistant, ebac: FakeEbac) -> None:
         DOMAIN, context={"source": SOURCE_HASSIO}, data=moved
     )
     await hass.async_block_till_done()
-    # (not offered again, either way)
+    # not offered again; the new address followed, and EBaC set up with it
     assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
     assert entry.data[CONF_URL] == "http://ebac.test:8080/cgi-bin/ebac2"
+    assert entry.state is ConfigEntryState.LOADED
+
+
+async def test_app_announced_again(hass: HomeAssistant, ebac: FakeEbac) -> None:
+    """Already set up, at the same address (each restart of the app): not
+    offered again, and nothing changes."""
+    entry = await setup_ebac(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_HASSIO}, data=DISCOVERY
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert entry.data[CONF_URL] == URL
+    assert not hass.config_entries.flow.async_progress()
 
 
 async def test_options(hass: HomeAssistant, ebac: FakeEbac) -> None:

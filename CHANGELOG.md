@@ -3,6 +3,13 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.3
+
+### Fixed
+
+- **A new address of the EBaC app is followed.** When the app announced itself at another address, Home Assistant turned the announcement away before the integration saw it (the integration was marked as allowing only one setup), so EBaC went on asking the old address. It is still set up only once.
+- "Use Gutenberg translations", when that source has none in the language looked in, names the language ("it has none in Spanish"), not its code ("es").
+
 ## 0.8.2
 
 ### Fixed

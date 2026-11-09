@@ -44,8 +44,7 @@
       "remove_needs_add": "Removing translations needs adding allowed too: check the box above it."
     },
     "abort": {
-      "already_configured": "EBaC is already set up.",
-      "single_instance_allowed": "EBaC is already set up."
+      "already_configured": "EBaC is already set up."
     }
   },
   "options": {

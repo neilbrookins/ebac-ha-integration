@@ -552,9 +552,19 @@ async def test_use_source(hass: HomeAssistant, ebac: FakeEbac, said: str, source
 
 async def test_use_source_none_in_the_language(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **ALLOW_ALL, **{CONF_LANGUAGE: "es"})
-    speech = await say(hass, INTENT_USE_LANGUAGE, language="Gutenberg")
-    assert speech.startswith("Translations from Project Gutenberg from now on; it has none in")
-    assert speech.endswith('It has some in English: say "use English translations", for one.')
+    """Named as the source looked in until now names it, not by its code."""
+    assert await say(hass, INTENT_USE_LANGUAGE, language="Gutenberg") == (
+        "Translations from Project Gutenberg from now on; it has none in Spanish. It has "
+        'some in English: say "use English translations", for one.'
+    )
+
+
+async def test_use_source_language_nowhere_named(hass: HomeAssistant, ebac: FakeEbac) -> None:
+    """A language code neither source names (typed under Configure): said as typed."""
+    await setup_ebac(hass, **ALLOW_ALL, **{CONF_LANGUAGE: "tlh"})
+    assert (await say(hass, INTENT_USE_LANGUAGE, language="Gutenberg")).startswith(
+        "Translations from Project Gutenberg from now on; it has none in tlh."
+    )
 
 
 async def test_use_translation_by_name(hass: HomeAssistant, ebac: FakeEbac) -> None:

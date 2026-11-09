@@ -155,9 +155,22 @@ async def _async_set_up_reading(hass: HomeAssistant, entry: EbacConfigEntry) -> 
     api = EbacApi(async_get_clientsession(hass), entry.data[CONF_URL])
     translation = entry.options.get(CONF_TRANSLATION) or None
     try:
+        translations = await api.translations()
+        if translation and translation not in {t["name"] for t in translations}:
+            # Removed since it was chosen (in EBaC, or by voice): EBaC's
+            # first is used, as when none is chosen, and the option is
+            # cleared to say so. Refusing to start instead would leave
+            # every sentence unanswered, even "use translation …", the
+            # one that would set it right (November 9, 2026: CNVS-TB).
+            _LOGGER.warning(
+                "The translation %s is no longer in EBaC: using its first", translation
+            )
+            translation = None
+            options = dict(entry.options)
+            options.pop(CONF_TRANSLATION, None)
+            hass.config_entries.async_update_entry(entry, options=options)
         books = await api.books(translation)
         numbers = await api.numbers(translation)
-        translations = await api.translations()
         said = await api.said()
         # The sentences know the books of every translation installed, not
         # only of the one in use: so "John 3:16" said while reading the

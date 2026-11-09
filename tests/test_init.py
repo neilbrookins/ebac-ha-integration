@@ -305,3 +305,15 @@ def test_sentence_file_helpers(tmp_path: Path) -> None:
     assert sentences.write(str(tmp_path), data) is False  # (unchanged)
     assert sentences.remove(str(tmp_path)) is True
     assert sentences.remove(str(tmp_path)) is False  # (already gone)
+
+
+async def test_setup_translation_removed(hass: HomeAssistant, ebac: FakeEbac) -> None:
+    """The translation chosen was removed in EBaC since: EBaC's first is
+    used, the option cleared, and voice still works (it once refused to
+    start, leaving every sentence unanswered)."""
+    entry = await setup_ebac(hass, **{CONF_TRANSLATION: "GONE"})
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data.translation is None
+    assert entry.runtime_data.title == "King James Version"
+    assert CONF_TRANSLATION not in entry.options
+    assert "loved" in await say(hass, INTENT_READ, book="John", chapter=3, verse=16)

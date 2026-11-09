@@ -3,6 +3,17 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.5
+
+### Fixed
+- **Voice works when its translation has been removed.** With the
+  translation chosen in its options removed in EBaC since, the
+  integration refused to start, retrying, so every sentence was
+  recognised but unanswered ("Unknown intent EbacRead"), even "use
+  translation …", the one that would set it right. It now reads from
+  EBaC's first translation, as when none is chosen, and clears the
+  option.
+
 ## 0.8.4
 
 ### Changed

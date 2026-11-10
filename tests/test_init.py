@@ -332,9 +332,9 @@ async def test_translation_gone_while_reading(
     entry = await setup_ebac(hass, **{CONF_TRANSLATION: "WLC"})
     assert entry.runtime_data.translation == "WLC"
     ebac.installed = ["AV", "KJVA-SM"]
-    speech = await say(hass, INTENT_READ, book="John", chapter=3, verse=16)
+    speech = await say(hass, INTENT_READ, book="Genesis", chapter=1, verse=1)
     assert speech.startswith("WLC isn't in EBaC just now, so this is from King James Version. ")
-    assert "John 3:16" in speech
+    assert "Genesis 1:1" in speech
     data = entry.runtime_data
     assert (data.translation, data.missing) == (None, "WLC")
     assert entry.options[CONF_TRANSLATION] == "WLC"

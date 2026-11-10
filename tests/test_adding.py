@@ -49,7 +49,7 @@ def target(call) -> list[str]:
 async def test_added(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
     entry = await setup_ebac(hass, **ALLOW_ALL)
     ir.async_create_issue(  # (an earlier try that failed)
-        hass, DOMAIN, "add_failed_litv", is_fixable=True,
+        hass, DOMAIN, "add_failed_litv-sm", is_fixable=True,
         severity=ir.IssueSeverity.ERROR, translation_key="add_failed",
     )
     ebac.adds["LITV-SM"] = {"state": "done", "message": ""}
@@ -66,7 +66,7 @@ async def test_added(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
     assert announce[0].data["message"] == (
         "Literal Translation of the Holy Bible (LITV-SM) is added. Now reading from it."
     )
-    assert ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv") is None
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv-sm") is None
 
 
 async def test_added_ebook(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
@@ -91,7 +91,7 @@ async def test_failed(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
     await hass.async_block_till_done()
 
     assert entry.options[CONF_TRANSLATION] == "AV"
-    issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv")
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv-sm")
     assert issue is not None
     assert issue.is_fixable  # (Submit clears it: a failed add leaves nothing)
     assert issue.translation_placeholders == {
@@ -108,7 +108,7 @@ async def test_failed_without_a_reason(hass: HomeAssistant, ebac: FakeEbac, anno
     await setup_ebac(hass, **ALLOW_ALL)
     ebac.adds["LITV-SM"] = {"state": "failed", "message": ""}
     await adding.watch_add(hass, "LITV-SM", "Literal", kitchen())
-    issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv")
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv-sm")
     assert issue.translation_placeholders["why"] == "it stopped without saying why"
 
 
@@ -117,7 +117,7 @@ async def test_still_going_after_an_hour(hass: HomeAssistant, ebac: FakeEbac, an
     ebac.adds["LITV-SM"] = {"state": "running", "message": ""}
     with patch.object(adding, "ADD_MAX_SECONDS", 0):
         await adding.watch_add(hass, "LITV-SM", "Literal", kitchen())
-    issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv")
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv-sm")
     assert issue.translation_placeholders["why"] == "it was still going after an hour"
 
 

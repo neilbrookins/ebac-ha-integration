@@ -140,8 +140,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: EbacConfigEntry) -> bool
         try:
             translations = await data.api.translations()
             data.said = await data.api.said()
-            if data.missing in {t["name"] for t in translations}:
-                # the translation chosen is back: read from it again
+            names = {t["name"] for t in translations}
+            if data.missing in names or (data.translation and data.translation not in names):
+                # the translation chosen is back: read from it again; or
+                # the one read from is gone (removed in the app, perhaps to
+                # be added again): EBaC's first, until it is back
                 await async_set_up_reading_again(hass, entry)
         except EbacUnreachable:
             await reachable.async_unanswered(hass, entry.data[CONF_URL])

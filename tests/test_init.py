@@ -319,3 +319,42 @@ def test_sentence_file_helpers(tmp_path: Path) -> None:
     assert sentences.remove(str(tmp_path)) is True
     assert sentences.remove(str(tmp_path)) is False  # (already gone)
 
+
+
+async def test_translation_gone_while_reading(
+    hass: HomeAssistant, ebac: FakeEbac, freezer: FrozenDateTimeFactory
+) -> None:
+    """The translation read from removed in the app after reading was set up
+    (perhaps to be added again): asked for a verse, voice says so and reads
+    from EBaC's first; the option is kept, and it is read from again when
+    back. (It answered "There is no translation NLT-TB." until the app was
+    set up again.)"""
+    entry = await setup_ebac(hass, **{CONF_TRANSLATION: "WLC"})
+    assert entry.runtime_data.translation == "WLC"
+    ebac.installed = ["AV", "KJVA-SM"]
+    speech = await say(hass, INTENT_READ, book="John", chapter=3, verse=16)
+    assert speech.startswith("WLC isn't in EBaC just now, so this is from King James Version. ")
+    assert "John 3:16" in speech
+    data = entry.runtime_data
+    assert (data.translation, data.missing) == (None, "WLC")
+    assert entry.options[CONF_TRANSLATION] == "WLC"
+
+    ebac.installed = ["AV", "WLC", "KJVA-SM"]
+    freezer.tick(timedelta(minutes=5))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.translation == "WLC"
+
+
+async def test_translation_gone_found_by_the_check(
+    hass: HomeAssistant, ebac: FakeEbac, freezer: FrozenDateTimeFactory
+) -> None:
+    """Gone, with no one asking: the regular check sets reading up again
+    from EBaC's first."""
+    entry = await setup_ebac(hass, **{CONF_TRANSLATION: "WLC"})
+    ebac.installed = ["AV"]
+    freezer.tick(timedelta(minutes=5))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    data = entry.runtime_data
+    assert (data.translation, data.missing) == (None, "WLC")

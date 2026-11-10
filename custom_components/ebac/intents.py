@@ -121,13 +121,30 @@ class EbacHandler(intent.IntentHandler):
             response.async_set_speech(NOT_SET_UP)
             return response
         key = place_key(intent_obj)
+        before = ""
         try:
-            speech = await self.answer(intent_obj, data, key)
+            try:
+                speech = await self.answer(intent_obj, data, key)
+            except EbacError as err:
+                if not (data.translation and str(err).startswith("There is no translation")):
+                    raise
+                # The one read from was removed in the app since reading was
+                # set up (perhaps to be added again): set up again, from
+                # EBaC's first until it is back (the option is kept), and
+                # answered from that (November 10, 2026: NLT-TB)
+                gone = data.translation
+                entries = intent_obj.hass.config_entries.async_entries(DOMAIN)
+                from . import async_set_up_reading_again  # (it imports this)
+
+                await async_set_up_reading_again(intent_obj.hass, entries[0])
+                data = intent_obj.hass.data[DOMAIN]
+                before = f"{gone} isn't in EBaC just now, so this is from {data.title}. "
+                speech = await self.answer(intent_obj, data, key)
         except EbacError as err:
             speech = str(err)
             if not speech.endswith((".", "?", "!")):
                 speech += "."
-        response.async_set_speech(speech)
+        response.async_set_speech(before + speech)
         return response
 
     async def answer(self, intent_obj: intent.Intent, data: EbacData, key: str) -> str:

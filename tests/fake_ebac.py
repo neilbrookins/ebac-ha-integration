@@ -115,7 +115,7 @@ class FakeEbac:
     def _translation(self, params: dict[str, str]) -> str:
         name = params.get("t") or self.installed[0]
         if name not in self.installed:
-            raise Answer(f"No translation called {name} is installed")
+            raise Answer(f"There is no translation {name}.")  # (as ebac-api: file.c)
         return name
 
     def _verses(self, translation: str) -> list[tuple[str, int, int]]:

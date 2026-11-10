@@ -3,6 +3,16 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.7
+
+### Fixed
+- **Voice goes on when the translation it reads from is removed** in the
+  app while Home Assistant is running (to add it again, say). It
+  answered "There is no translation NLT-TB." Now it says the translation
+  isn't in EBaC just now and reads from EBaC's first instead, keeping
+  your choice, and goes back to it once it is there again (within five
+  minutes). The regular check notices it too, with no one asking.
+
 ## 0.8.6
 
 ### Changed

@@ -42,9 +42,9 @@ APOCRYPHA = [*BIBLE[:3], ("Tobit", 14, ["Tobit"]), *BIBLE[3:]]
 TRANSLATIONS = {
     "AV": {"title": "King James Version", "books": BIBLE},
     "WLC": {"title": "The Westminster Leningrad Codex", "books": HEBREW},
-    "KJVA": {"title": "King James Version with Apocrypha", "books": APOCRYPHA},
+    "KJVA-SM": {"title": "King James Version with Apocrypha", "books": APOCRYPHA},
     # (not installed to begin with: added by voice)
-    "LITV": {"title": "Literal Translation of the Holy Bible", "books": BIBLE},
+    "LITV-SM": {"title": "Literal Translation of the Holy Bible", "books": BIBLE},
     "WEB-PG": {"title": "World English Bible", "books": BIBLE},
 }
 
@@ -92,7 +92,7 @@ class Answer(Exception):
 class FakeEbac:
     """The state of the fake EBaC, which tests may change."""
 
-    installed: list[str] = field(default_factory=lambda: ["AV", "WLC", "KJVA"])
+    installed: list[str] = field(default_factory=lambda: ["AV", "WLC", "KJVA-SM"])
     said: list[dict[str, str]] = field(
         default_factory=lambda: [{"word": TETRAGRAMMATON, "say": "Adonai"}]
     )
@@ -344,15 +344,15 @@ CATALOGS: dict[str, dict] = {
             {"code": "grc", "english": "Ancient Greek", "own": "Ἑλληνική", "count": 1},
         ],
         "translations": [
-            {"name": "LITV", "title": "Literal Translation of the Holy Bible",
+            {"name": "LITV-SM", "title": "Literal Translation of the Holy Bible",
              "language": "en", "license": "Copyright Jay P. Green, used by permission"},
-            {"name": "ASV", "title": "American Standard Version", "language": "en",
+            {"name": "ASV-SM", "title": "American Standard Version", "language": "en",
              "license": "Public domain"},
-            {"name": "KJVA", "title": "King James Version with Apocrypha", "language": "en",
+            {"name": "KJVA-SM", "title": "King James Version with Apocrypha", "language": "en",
              "license": "Public domain", "added": True},
-            {"name": "RVG", "title": "Reina Valera Gómez", "language": "es",
+            {"name": "RVG-SM", "title": "Reina Valera Gómez", "language": "es",
              "license": "Public domain"},
-            {"name": "TR", "title": "Textus Receptus", "language": "grc",
+            {"name": "TR-SM", "title": "Textus Receptus", "language": "grc",
              "license": "Public domain"},
         ],
     },

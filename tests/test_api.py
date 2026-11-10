@@ -86,10 +86,10 @@ async def test_said_unreachable_is_still_an_error(api: EbacApi, ebac: FakeEbac) 
 async def test_admin_requests(api: EbacApi, ebac: FakeEbac) -> None:
     await api.catalog("gutenberg")
     assert ebac.requests[-1] == ("admin/catalog", {"source": "gutenberg"})
-    await api.add("LITV", "by voice, from Kitchen", "scrollmapper")
+    await api.add("LITV-SM", "by voice, from Kitchen", "scrollmapper")
     assert ebac.requests[-1] == (
         "admin/add",
-        {"name": "LITV", "agreed": "by voice, from Kitchen", "source": "scrollmapper"},
+        {"name": "LITV-SM", "agreed": "by voice, from Kitchen", "source": "scrollmapper"},
     )
 
 

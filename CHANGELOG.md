@@ -3,6 +3,16 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.6
+
+### Changed
+- **Translations from scrollmapper/bible_databases end in -SM**, as those
+  from thiagobodruk/bible end in -TB and those from Project Gutenberg in
+  -PG (EBaC's importers name them so from the Home Assistant app 2.16.0).
+  The ending says only where a translation came from, so it isn't said:
+  "add translation LITV" adds LITV-SM. One added before keeps its old
+  name until removed and added again.
+
 ## 0.8.5
 
 ### Fixed

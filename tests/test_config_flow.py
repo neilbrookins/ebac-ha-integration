@@ -74,7 +74,7 @@ async def test_user_setup(hass: HomeAssistant, ebac: FakeEbac) -> None:
 async def test_first_translation_offered_without_the_av(
     hass: HomeAssistant, ebac: FakeEbac
 ) -> None:
-    ebac.installed = ["WLC", "KJVA"]
+    ebac.installed = ["WLC", "KJVA-SM"]
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_URL: URL})
     assert default(result, CONF_TRANSLATION) == "WLC"
@@ -209,7 +209,7 @@ async def test_options(hass: HomeAssistant, ebac: FakeEbac) -> None:
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
-            CONF_TRANSLATION: "KJVA",
+            CONF_TRANSLATION: "KJVA-SM",
             # (a number box gives a float)
             CONF_READ_ON: 8.0,
             CONF_SOURCE: "thiagobodruk",
@@ -225,7 +225,7 @@ async def test_options(hass: HomeAssistant, ebac: FakeEbac) -> None:
     assert isinstance(entry.options[CONF_READ_ON], int)
     # and EBaC reads from the new translation, and as much as asked
     data = entry.runtime_data
-    assert (data.translation, data.read_on, data.source) == ("KJVA", 8, "thiagobodruk")
+    assert (data.translation, data.read_on, data.source) == ("KJVA-SM", 8, "thiagobodruk")
     assert data.allow_change
 
 
@@ -251,7 +251,7 @@ async def test_options_permissions(hass: HomeAssistant, ebac: FakeEbac) -> None:
 async def test_options_translation_gone(hass: HomeAssistant, ebac: FakeEbac) -> None:
     """The translation in use removed in the app: the first installed is
     offered, not one that isn't there."""
-    entry = await setup_ebac(hass, **{CONF_TRANSLATION: "KJVA"})
+    entry = await setup_ebac(hass, **{CONF_TRANSLATION: "KJVA-SM"})
     ebac.installed = ["AV", "WLC"]
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert default(result, CONF_TRANSLATION) == "AV"

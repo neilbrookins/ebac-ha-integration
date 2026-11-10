@@ -52,19 +52,19 @@ async def test_added(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
         hass, DOMAIN, "add_failed_litv", is_fixable=True,
         severity=ir.IssueSeverity.ERROR, translation_key="add_failed",
     )
-    ebac.adds["LITV"] = {"state": "done", "message": ""}
+    ebac.adds["LITV-SM"] = {"state": "done", "message": ""}
 
-    await adding.watch_add(hass, "LITV", "Literal Translation of the Holy Bible", kitchen())
+    await adding.watch_add(hass, "LITV-SM", "Literal Translation of the Holy Bible", kitchen())
     await hass.async_block_till_done()
 
     # read from now on, by everyone
-    assert entry.options[CONF_TRANSLATION] == "LITV"
-    assert entry.runtime_data.translation == "LITV"
+    assert entry.options[CONF_TRANSLATION] == "LITV-SM"
+    assert entry.runtime_data.translation == "LITV-SM"
     # the one who asked is told, on the speaker asked on
     assert len(announce) == 1
     assert target(announce[0]) == [SATELLITE]
     assert announce[0].data["message"] == (
-        "Literal Translation of the Holy Bible (LITV) is added. Now reading from it."
+        "Literal Translation of the Holy Bible (LITV-SM) is added. Now reading from it."
     )
     assert ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv") is None
 
@@ -86,8 +86,8 @@ async def test_added_ebook(hass: HomeAssistant, ebac: FakeEbac, announce) -> Non
 
 async def test_failed(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
     entry = await setup_ebac(hass, **ALLOW_ALL)
-    ebac.adds["LITV"] = {"state": "failed", "message": "the download was cut off"}
-    await adding.watch_add(hass, "LITV", "Literal Translation of the Holy Bible", kitchen())
+    ebac.adds["LITV-SM"] = {"state": "failed", "message": "the download was cut off"}
+    await adding.watch_add(hass, "LITV-SM", "Literal Translation of the Holy Bible", kitchen())
     await hass.async_block_till_done()
 
     assert entry.options[CONF_TRANSLATION] == "AV"
@@ -95,28 +95,28 @@ async def test_failed(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
     assert issue is not None
     assert issue.is_fixable  # (Submit clears it: a failed add leaves nothing)
     assert issue.translation_placeholders == {
-        "translation": "Literal Translation of the Holy Bible (LITV)",
+        "translation": "Literal Translation of the Holy Bible (LITV-SM)",
         "why": "the download was cut off",
         "who": "Kitchen",
     }
     assert announce[0].data["message"] == (
-        "Adding Literal Translation of the Holy Bible (LITV) failed: the download was cut off"
+        "Adding Literal Translation of the Holy Bible (LITV-SM) failed: the download was cut off"
     )
 
 
 async def test_failed_without_a_reason(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
-    ebac.adds["LITV"] = {"state": "failed", "message": ""}
-    await adding.watch_add(hass, "LITV", "Literal", kitchen())
+    ebac.adds["LITV-SM"] = {"state": "failed", "message": ""}
+    await adding.watch_add(hass, "LITV-SM", "Literal", kitchen())
     issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv")
     assert issue.translation_placeholders["why"] == "it stopped without saying why"
 
 
 async def test_still_going_after_an_hour(hass: HomeAssistant, ebac: FakeEbac, announce) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
-    ebac.adds["LITV"] = {"state": "running", "message": ""}
+    ebac.adds["LITV-SM"] = {"state": "running", "message": ""}
     with patch.object(adding, "ADD_MAX_SECONDS", 0):
-        await adding.watch_add(hass, "LITV", "Literal", kitchen())
+        await adding.watch_add(hass, "LITV-SM", "Literal", kitchen())
     issue = ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_litv")
     assert issue.translation_placeholders["why"] == "it was still going after an hour"
 
@@ -126,23 +126,23 @@ async def test_status_unanswered_is_asked_again(
 ) -> None:
     """EBaC not answering for a moment while it adds: asked again."""
     await setup_ebac(hass, **ALLOW_ALL)
-    ebac.adds["LITV"] = {"state": "running", "message": ""}
+    ebac.adds["LITV-SM"] = {"state": "running", "message": ""}
     answers = iter([True, False])
 
     real = ebac.admin_status
 
     def status(params):
         if next(answers, False):
-            ebac.adds["LITV"] = {"state": "done", "message": ""}
+            ebac.adds["LITV-SM"] = {"state": "done", "message": ""}
             from .fake_ebac import Answer
 
             raise Answer("busy", 503)
         return real(params)
 
     ebac.admin_status = status
-    await adding.watch_add(hass, "LITV", "Literal", kitchen())
+    await adding.watch_add(hass, "LITV-SM", "Literal", kitchen())
     await hass.async_block_till_done()
-    assert announce[0].data["message"] == "Literal (LITV) is added. Now reading from it."
+    assert announce[0].data["message"] == "Literal (LITV-SM) is added. Now reading from it."
 
 
 async def test_told_on_the_users_phone(hass: HomeAssistant, ebac: FakeEbac) -> None:

@@ -125,10 +125,10 @@ async def test_by_voice_with_everything_allowed(hass: HomeAssistant, ebac: FakeE
     assert await async_setup_component(hass, "conversation", {})
     entry = await setup_ebac(hass, **ALLOW_ALL)
     assert await ask(hass, "change the translation to K J V A") == (
-        "Now reading from King James Version with Apocrypha (KJVA)."
+        "Now reading from King James Version with Apocrypha (KJVA-SM)."
     )
     await hass.async_block_till_done()
-    assert entry.options[CONF_TRANSLATION] == "KJVA"
+    assert entry.options[CONF_TRANSLATION] == "KJVA-SM"
 
     assert (await ask(hass, "use Spanish translations")).startswith(
         "Translations in Spanish from now on"
@@ -141,7 +141,7 @@ async def test_by_voice_with_everything_allowed(hass: HomeAssistant, ebac: FakeE
     assert (await ask(hass, "add translation RVG")).endswith(
         "Say yes or no: do you agree to its license?"
     )
-    assert await ask(hass, "no thanks") == "All right: Reina Valera Gómez (RVG) isn't added."
+    assert await ask(hass, "no thanks") == "All right: Reina Valera Gómez (RVG-SM) isn't added."
     assert (await ask(hass, "remove the translation WLC")).startswith("Say yes or no")
     assert await ask(hass, "yes please") == "Removed The Westminster Leningrad Codex (WLC)."
     await hass.async_block_till_done()

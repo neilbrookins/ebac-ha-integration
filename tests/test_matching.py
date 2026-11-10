@@ -20,6 +20,7 @@ INSTALLED = [
     {"name": "KJVA", "title": "King James Version with Apocrypha"},
     {"name": "WLC", "title": "The Westminster Leningrad Codex"},
     {"name": "NIV-TB", "title": "New International Version"},
+    {"name": "LITV-SM", "title": "Literal Translation of the Holy Bible"},
     {"name": "8294", "names": "WEB-PG", "title": "World English Bible"},
 ]
 LANGUAGES = [
@@ -41,6 +42,7 @@ def names(found: list[dict]) -> list[str]:
         ("K.J.V.A.", ["KJVA"]),
         ("NIV-TB", ["NIV-TB"]),
         ("NIV", ["NIV-TB"]),  # (its source's ending implied)
+        ("LITV", ["LITV-SM"]),  # (scrollmapper's too)
         ("WEB", ["8294"]),
         ("8294", ["8294"]),
         ("Westminster", ["WLC"]),
@@ -58,7 +60,7 @@ def test_match_translations(said: str, expected: list[str]) -> None:
 def test_accents_left_off() -> None:
     """Speech to text may leave an accent off a name."""
     found = match_translations("Reina Valera Gomez", CATALOGS["scrollmapper"]["translations"])
-    assert names(found) == ["RVG"]
+    assert names(found) == ["RVG-SM"]
     assert words_of("Reina-Valera Gómez!") == ["reina", "valera", "gomez"]
 
 

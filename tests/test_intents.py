@@ -183,7 +183,7 @@ async def test_place_follows_a_changed_translation(
     entry = await setup_ebac(hass)
     await read(hass, "John", 3, 16)
     hass.config_entries.async_update_entry(
-        entry, options={**entry.options, CONF_TRANSLATION: "KJVA"}
+        entry, options={**entry.options, CONF_TRANSLATION: "KJVA-SM"}
     )
     await hass.async_block_till_done()
     assert refs(await say(hass, INTENT_NEXT)) == ["John 3:17"]
@@ -332,7 +332,7 @@ async def test_results_in_a_changed_translation(hass: HomeAssistant, ebac: FakeE
     await say(hass, INTENT_SEARCH, words="love")
     await say(hass, INTENT_RESULT, number=4)
     hass.config_entries.async_update_entry(
-        entry, options={**entry.options, CONF_TRANSLATION: "KJVA"}
+        entry, options={**entry.options, CONF_TRANSLATION: "KJVA-SM"}
     )
     await hass.async_block_till_done()
     assert (await say(hass, INTENT_NEXT_RESULT)).startswith("Result 1 of 12.")
@@ -365,10 +365,10 @@ async def test_change_not_allowed(hass: HomeAssistant, entry: MockConfigEntry) -
 async def test_change_by_short_name(hass: HomeAssistant, ebac: FakeEbac, said: str) -> None:
     entry = await setup_ebac(hass, **CHANGE_ONLY)
     speech = await say(hass, INTENT_TRANSLATION, name=said)
-    assert speech == "Now reading from King James Version with Apocrypha (KJVA)."
+    assert speech == "Now reading from King James Version with Apocrypha (KJVA-SM)."
     await hass.async_block_till_done()
-    assert entry.options[CONF_TRANSLATION] == "KJVA"
-    assert entry.runtime_data.translation == "KJVA"
+    assert entry.options[CONF_TRANSLATION] == "KJVA-SM"
+    assert entry.runtime_data.translation == "KJVA-SM"
 
 
 async def test_change_by_title(hass: HomeAssistant, ebac: FakeEbac) -> None:
@@ -381,7 +381,7 @@ async def test_change_by_title(hass: HomeAssistant, ebac: FakeEbac) -> None:
 async def test_change_ambiguous(hass: HomeAssistant, ebac: FakeEbac) -> None:
     entry = await setup_ebac(hass, **CHANGE_ONLY)
     assert await say(hass, INTENT_TRANSLATION, name="King James") == (
-        "Which one: King James Version (AV); or King James Version with Apocrypha (KJVA)?"
+        "Which one: King James Version (AV); or King James Version with Apocrypha (KJVA-SM)?"
     )
     assert entry.options[CONF_TRANSLATION] == "AV"
 
@@ -398,7 +398,7 @@ async def test_change_to_unknown(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **CHANGE_ONLY)
     assert await say(hass, INTENT_TRANSLATION, name="Klingon") == (
         'No translation installed is called "Klingon". Installed: King James Version (AV); '
-        "The Westminster Leningrad Codex (WLC); King James Version with Apocrypha (KJVA)."
+        "The Westminster Leningrad Codex (WLC); King James Version with Apocrypha (KJVA-SM)."
     )
 
 
@@ -415,7 +415,7 @@ async def test_which_translation(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **CHANGE_ONLY)
     assert await say(hass, INTENT_WHICH_TRANSLATION) == (
         "Reading from King James Version (AV). Also installed: The Westminster "
-        "Leningrad Codex (WLC); King James Version with Apocrypha (KJVA)."
+        "Leningrad Codex (WLC); King James Version with Apocrypha (KJVA-SM)."
     )
     assert (await say(hass, INTENT_LIST_ADDED)).startswith(
         "3 added: 1, King James Version (AV); 2, The Westminster Leningrad Codex (WLC)"
@@ -488,12 +488,12 @@ async def test_list_paging(hass: HomeAssistant, ebac: FakeEbac) -> None:
 async def test_list_available(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
     assert await say(hass, INTENT_LIST_AVAILABLE) == (
-        "3 in English from scrollmapper/bible_databases: 1, LITV: Literal Translation "
-        "of the Holy Bible; 2, ASV: American Standard Version; 3, KJVA: King James "
+        "3 in English from scrollmapper/bible_databases: 1, LITV-SM: Literal Translation "
+        "of the Holy Bible; 2, ASV-SM: American Standard Version; 3, KJVA-SM: King James "
         "Version with Apocrypha, added."
     )
     assert await say(hass, INTENT_LIST_AVAILABLE, language="Español") == (
-        "1 in Spanish from scrollmapper/bible_databases: 1, RVG: Reina Valera Gómez."
+        "1 in Spanish from scrollmapper/bible_databases: 1, RVG-SM: Reina Valera Gómez."
     )
     assert await say(hass, INTENT_LIST_AVAILABLE, language="Klingon") == (
         'Which language is "Klingon"? Say "which languages are there?" to hear them.'
@@ -568,14 +568,14 @@ async def test_use_source_language_nowhere_named(hass: HomeAssistant, ebac: Fake
 
 
 async def test_use_translation_by_name(hass: HomeAssistant, ebac: FakeEbac) -> None:
-    """"Use translation KJVA": a translation added, read from (as "change
-    translation to KJVA"), when it isn't a language or source."""
+    """"Use translation KJVA-SM": a translation added, read from (as "change
+    translation to KJVA-SM"), when it isn't a language or source."""
     entry = await setup_ebac(hass, **CHANGE_ONLY)
     assert await say(hass, INTENT_USE_LANGUAGE, language="KJVA") == (
-        "Now reading from King James Version with Apocrypha (KJVA)."
+        "Now reading from King James Version with Apocrypha (KJVA-SM)."
     )
     await hass.async_block_till_done()
-    assert entry.options[CONF_TRANSLATION] == "KJVA"
+    assert entry.options[CONF_TRANSLATION] == "KJVA-SM"
 
 
 async def test_use_unknown(hass: HomeAssistant, ebac: FakeEbac) -> None:
@@ -598,20 +598,20 @@ def watch_add():
 async def test_add(hass: HomeAssistant, ebac: FakeEbac, watch_add: AsyncMock) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
     assert await say(hass, INTENT_ADD, name="LITV") == (
-        "Literal Translation of the Holy Bible (LITV). Its license: Copyright Jay P. "
+        "Literal Translation of the Holy Bible (LITV-SM). Its license: Copyright Jay P. "
         "Green, used by permission. The details are on CrossWire's page for it. "
         "Say yes or no: do you agree to its license?"
     )
-    assert "LITV" not in ebac.adds  # (not before the yes)
+    assert "LITV-SM" not in ebac.adds  # (not before the yes)
 
     assert await say(hass, INTENT_YES) == (
-        "Adding Literal Translation of the Holy Bible (LITV). It takes a minute or two; "
+        "Adding Literal Translation of the Holy Bible (LITV-SM). It takes a minute or two; "
         "you'll be told when it's done."
     )
-    assert ebac.adds["LITV"]["agreed"] == "by voice, from Assist"
+    assert ebac.adds["LITV-SM"]["agreed"] == "by voice, from Assist"
     await hass.async_block_till_done()
     watch_add.assert_called_once()
-    assert watch_add.call_args.args[1:3] == ("LITV", "Literal Translation of the Holy Bible")
+    assert watch_add.call_args.args[1:3] == ("LITV-SM", "Literal Translation of the Holy Bible")
 
     # the question is answered: another yes is to nothing
     assert await say(hass, INTENT_YES) == "There's no question waiting for a yes."
@@ -621,7 +621,7 @@ async def test_add_no(hass: HomeAssistant, ebac: FakeEbac, watch_add: AsyncMock)
     await setup_ebac(hass, **ALLOW_ALL)
     await say(hass, INTENT_ADD, name="LITV")
     assert await say(hass, INTENT_NO) == (
-        "All right: Literal Translation of the Holy Bible (LITV) isn't added."
+        "All right: Literal Translation of the Holy Bible (LITV-SM) isn't added."
     )
     assert await say(hass, INTENT_YES) == "There's no question waiting for a yes."
     assert not ebac.adds
@@ -658,7 +658,7 @@ async def test_add_from_another_language(hass: HomeAssistant, ebac: FakeEbac) ->
 async def test_add_same_version_again(hass: HomeAssistant, ebac: FakeEbac) -> None:
     await setup_ebac(hass, **ALLOW_ALL)
     assert (await say(hass, INTENT_ADD, name="KJVA")).startswith(
-        "You already have this version of King James Version with Apocrypha (KJVA), "
+        "You already have this version of King James Version with Apocrypha (KJVA-SM), "
         "downloaded 2026-10-01."
     )
 
@@ -698,7 +698,7 @@ async def test_add_refused_by_the_app(
 ) -> None:
     """Another add under way (HTTP 409): EBaC's reason, said."""
     await setup_ebac(hass, **ALLOW_ALL)
-    ebac.adds["ASV"] = {"state": "running", "message": ""}
+    ebac.adds["ASV-SM"] = {"state": "running", "message": ""}
     await say(hass, INTENT_ADD, name="LITV")
     assert await say(hass, INTENT_YES) == "Another translation is being added."
     watch_add.assert_not_called()
@@ -724,7 +724,7 @@ async def test_remove(hass: HomeAssistant, ebac: FakeEbac) -> None:
     assert "WLC" in ebac.installed
     assert await say(hass, INTENT_YES) == "Removed The Westminster Leningrad Codex (WLC)."
     await hass.async_block_till_done()
-    assert ebac.installed == ["AV", "KJVA"]
+    assert ebac.installed == ["AV", "KJVA-SM"]
     # a failed add's repair of it: gone with it
     assert ir.async_get(hass).async_get_issue(DOMAIN, "add_failed_wlc") is None
     # still reading from the AV

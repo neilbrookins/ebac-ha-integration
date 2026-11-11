@@ -74,9 +74,17 @@ def _key(word: str) -> str:
     return unicodedata.normalize("NFC", _IGNORED.sub("", word))
 
 
+# Marks in the text that are not said: the pilcrow, ¶, where a paragraph
+# starts or ends (as a printed King James Version marks them; EBaC shows a
+# blank line for it, and Assist shows it as the text has it), which a voice
+# would otherwise read out ("pilcrow", "paragraph sign").
+_SILENT = re.compile(r"\s*\u00b6\s*")
+
+
 def say_words(text: str, said: list[dict[str, str]]) -> str:
     """The text with each listed word (a whole word, compared without chant
-    marks) said the listed way."""
+    marks) said the listed way, and the marks that are not said left out."""
+    text = _SILENT.sub(" ", text).strip()
     table = {
         _key(item["word"]): item["say"]
         for item in said

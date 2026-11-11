@@ -3,6 +3,15 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.8
+
+### Fixed
+- **The paragraph mark, ¶, is not read aloud.** Some translations mark
+  where a paragraph starts or ends with a pilcrow (the King James
+  Version, Pure Cambridge Edition, and the American King James Version,
+  from scrollmapper/bible_databases); EBaC shows a blank line for it,
+  and Assist shows it as the text has it, but voice leaves it out.
+
 ## 0.8.7
 
 ### Fixed

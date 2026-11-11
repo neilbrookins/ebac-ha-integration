@@ -156,3 +156,20 @@ async def test_voice_without_another(hass: HomeAssistant, entry: MockConfigEntry
     assert voice.supported_languages == ["en-US"]
     with pytest.raises(HomeAssistantError, match="isn't there"):
         await voice.async_get_tts_audio("Hello", "en-US", {})
+
+
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        # (a paragraph's mark: at the end, as the AKJV has it; at the start,
+        # as the KJVPCE; within, before an epistle's closing line)
+        ("were the first day. ¶", "were the first day."),
+        ("¶ And God said, Let there be", "And God said, Let there be"),
+        ("for ever. Amen. ¶ Written to the Romans", "for ever. Amen. Written to the Romans"),
+        ("βασιλέα. ¶Δαυὶδ δὲ", "βασιλέα. Δαυὶδ δὲ"),
+    ],
+)
+def test_pilcrow_not_said(text: str, spoken: str) -> None:
+    """A pilcrow is not read out, with or without other words to say."""
+    assert say_words(text, []) == spoken
+    assert say_words(text, SAID) == spoken

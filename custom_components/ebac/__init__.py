@@ -175,9 +175,11 @@ async def _async_set_up_reading(hass: HomeAssistant, entry: EbacConfigEntry) -> 
             # to start instead left every sentence unanswered, even "use
             # translation …", the one that would set it right (November 9,
             # 2026: CNVS-TB).
+            # (what is wrong, and what to do about it: the designer,
+            # November 18, 2026)
             _LOGGER.warning(
-                "The translation %s is not in EBaC: reading from its first "
-                "until it is back",
+                "The translation chosen in EBaC's options, %s, isn't in EBaC; "
+                "choose another in its options",
                 translation,
             )
             missing, translation = translation, None

@@ -95,7 +95,10 @@ async def test_not_ready_while_unreachable(hass: HomeAssistant, ebac: FakeEbac) 
 
 
 async def test_translation_missing_until_back(
-    hass: HomeAssistant, ebac: FakeEbac, freezer: FrozenDateTimeFactory
+    hass: HomeAssistant,
+    ebac: FakeEbac,
+    freezer: FrozenDateTimeFactory,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """The translation chosen removed in the app (perhaps to be added
     again): EBaC's first is read from meanwhile, the option kept, and the
@@ -109,6 +112,11 @@ async def test_translation_missing_until_back(
     assert data.missing == "WLC"
     assert data.title == "King James Version"
     assert entry.options[CONF_TRANSLATION] == "WLC"
+    # (what is wrong, and what to do about it)
+    assert (
+        "The translation chosen in EBaC's options, WLC, isn't in EBaC; "
+        "choose another in its options" in caplog.text
+    )
     assert "John 3:16" in await say(hass, INTENT_READ, book="John", chapter=3, verse=16)
 
     ebac.installed = ["AV", "WLC"]

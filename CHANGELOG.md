@@ -3,6 +3,14 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.10
+
+### Changed
+- **The warning when the chosen translation isn't in EBaC says what to
+  do.** It said "The translation X is not in EBaC: reading from its
+  first until it is back"; now "The translation chosen in EBaC's
+  options, X, isn't in EBaC; choose another in its options".
+
 ## 0.8.9
 
 ### Fixed

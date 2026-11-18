@@ -1220,9 +1220,15 @@ HANDLERS = {
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    """Register EBaC's intents (again, if they already are)."""
+    """Register EBaC's intents, those not registered already. Reading set
+    up again (another translation in the options) leaves them as they are:
+    a handler keeps nothing of its own (each reads EBaC's from hass.data
+    as it answers), and registering one again would only be logged as a
+    warning, "Intent ... is being overwritten", once for each intent."""
+    registered = {handler.intent_type for handler in intent.async_get(hass)}
     for intent_type, handler in HANDLERS.items():
-        intent.async_register(hass, handler(intent_type))
+        if intent_type not in registered:
+            intent.async_register(hass, handler(intent_type))
 
 
 @callback

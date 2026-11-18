@@ -3,6 +3,15 @@
 Each version's notes. A release on GitHub is made from its section here
 by running the Release workflow (Actions tab): see .github/workflows/release.yml.
 
+## 0.8.9
+
+### Fixed
+- **No warnings in Home Assistant's log when the options are saved.**
+  Choosing another translation (or any option) in EBaC's configuration
+  registered each of EBaC's voice commands again, and Home Assistant
+  logged a warning for each, "Intent ... is being overwritten", though
+  nothing had changed. They are registered once now, and stay.
+
 ## 0.8.8
 
 ### Fixed

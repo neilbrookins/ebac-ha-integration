@@ -270,8 +270,7 @@ async def _options_changed(hass: HomeAssistant, entry: EbacConfigEntry) -> None:
     an answer ("Now reading from ...") may be on its way through it. If
     EBaC can't answer just now, everything is set up again, and retried
     as at a start."""
-    # (the intents stay registered, and are registered again: no moment
-    # without them)
+    # (the intents stay registered: no moment without them)
     await async_set_up_reading_again(hass, entry)
 
 

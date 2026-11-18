@@ -8,6 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 from freezegun.api import FrozenDateTimeFactory
 
@@ -134,14 +135,20 @@ async def test_unknown_source_is_the_default(hass: HomeAssistant, ebac: FakeEbac
     assert entry.runtime_data.source == "scrollmapper"
 
 
-async def test_translation_changed(hass: HomeAssistant, ebac: FakeEbac) -> None:
+async def test_translation_changed(
+    hass: HomeAssistant, ebac: FakeEbac, caplog: pytest.LogCaptureFixture
+) -> None:
     """Another translation in the options: its title and books, without
-    unloading (EBaC voice stays, and the intents have no gap)."""
+    unloading (EBaC voice stays, and the intents have no gap), and without
+    a warning for each intent ("is being overwritten")."""
     entry = await setup_ebac(hass)
+    handlers = {h.intent_type: h for h in intent.async_get(hass)}
     hass.config_entries.async_update_entry(
         entry, options={**entry.options, CONF_TRANSLATION: "WLC"}
     )
     await hass.async_block_till_done()
+    assert "is being overwritten" not in caplog.text
+    assert {h.intent_type: h for h in intent.async_get(hass)}[INTENT_READ] is handlers[INTENT_READ]
     assert entry.state is ConfigEntryState.LOADED
     assert entry.runtime_data.translation == "WLC"
     assert "John" not in entry.runtime_data.books
